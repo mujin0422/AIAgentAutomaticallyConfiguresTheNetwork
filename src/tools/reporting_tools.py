@@ -6,10 +6,8 @@ from datetime import datetime
 def generate_report(analysis_data: Dict[str, Any]) -> str:
     """
     Tạo báo cáo chi tiết về sự cố và giải pháp.
-    
     Args:
-        analysis_data: Dict chứa kết quả phân tích
-        
+        analysis_data: Dict chứa kết quả phân tích 
     Returns:
         String chứa báo cáo hoàn chỉnh
     """
@@ -19,14 +17,11 @@ def generate_report(analysis_data: Dict[str, Any]) -> str:
 ╔════════════════════════════════════════════════════════════════╗
 ║              BÁO CÁO PHÂN TÍCH SỰ CỐ MẠNG                      ║
 ╚════════════════════════════════════════════════════════════════╝
-
-📅 Thời gian: {timestamp}
-📍 Thiết bị: {analysis_data.get('target_device', 'N/A')}
-🔍 VLAN: {analysis_data.get('vlan_id', 'N/A')}
-
+- Thời gian: {timestamp}
+- Thiết bị: {analysis_data.get('target_device', 'N/A')}
+- VLAN: {analysis_data.get('vlan_id', 'N/A')}
 ─────────────────────────────────────────────────────────────────
-
-🔴 VẤN ĐỀ PHÁT HIỆN:
+===> VẤN ĐỀ PHÁT HIỆN
 ─────────────────────────────────────────────────────────────────
 """
     
@@ -45,13 +40,13 @@ def generate_report(analysis_data: Dict[str, Any]) -> str:
     report += "─────────────────────────────────────────────────────────────────\n\n"
     
     # Thêm nguyên nhân gốc rễ
-    report += "🔍 NGUYÊN NHÂN GỐC RỄ:\n"
+    report += "NGUYÊN NHÂN GỐC RỄ:\n"
     report += "─────────────────────────────────────────────────────────────────\n"
     root_cause = analysis_data.get('root_cause', 'Chưa xác định được nguyên nhân cụ thể.')
     report += f"{root_cause}\n\n"
     
     # Thêm đề xuất giải pháp
-    report += "💡 ĐỀ XUẤT GIẢI PHÁP:\n"
+    report += "ĐỀ XUẤT GIẢI PHÁP:\n"
     report += "─────────────────────────────────────────────────────────────────\n"
     recommendations = analysis_data.get('recommendations', [])
     if recommendations:
@@ -62,7 +57,7 @@ def generate_report(analysis_data: Dict[str, Any]) -> str:
     
     # Thêm hành động đã thực hiện
     if analysis_data.get('actions_taken'):
-        report += "\n✅ HÀNH ĐỘNG ĐÃ THỰC HIỆN:\n"
+        report += "\nHÀNH ĐỘNG ĐÃ THỰC HIỆN:\n"
         report += "─────────────────────────────────────────────────────────────────\n"
         for action in analysis_data['actions_taken']:
             report += f"• {action}\n"
@@ -70,12 +65,12 @@ def generate_report(analysis_data: Dict[str, Any]) -> str:
     report += """
 ─────────────────────────────────────────────────────────────────
 
-📊 KẾT LUẬN:
+KẾT LUẬN:
 """
     
     if analysis_data.get('resolved', False):
-        report += "✅ Sự cố đã được xử lý thành công."
+        report += "Sự cố đã được xử lý thành công."
     else:
-        report += "⚠️ Cần can thiệp thủ công để giải quyết triệt để."
+        report += "Cần can thiệp thủ công để giải quyết triệt để."
     
     return report

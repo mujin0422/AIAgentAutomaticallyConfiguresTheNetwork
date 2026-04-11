@@ -6,6 +6,3 @@ default:
   password: "123456"
   secret: "123456"
   port: 22
-  conn_timeout: 60
-  auth_timeout: 60
-  global_delay_factor: 2

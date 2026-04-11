@@ -10,7 +10,7 @@ ollama==0.6.1
 # Utilities
 python-dotenv==1.0.0
 pyyaml==6.0.1
-typing-extensions==4.15.0ch
+typing-extensions==4.15.0
 
 # Network automation
 netmiko>=4.3.0

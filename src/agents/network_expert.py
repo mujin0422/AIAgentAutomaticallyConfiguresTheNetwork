@@ -14,9 +14,6 @@ from src.tools.network_tools import (
 )
 
 def create_network_expert():
-    """
-    Tạo Network Expert Agent với các tool chuyên biệt
-    """
     tools = [
         connect_to_device,
         execute_show_command,
@@ -56,7 +53,6 @@ def create_network_expert():
         num_predict=2048,
     )
     
-    # LangGraph 1.1.3: dùng prompt (string) không phải messages_modifier
     agent = create_react_agent(
         model=llm,
         tools=tools,

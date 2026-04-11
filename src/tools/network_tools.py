@@ -26,16 +26,14 @@ def get_default_device_config():
 @tool
 def connect_to_device(device_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Kết nối đến thiết bị mạng qua SSH.
+    KẾT NỐI ĐẾN THIẾT BỊ MẠNG QUA SSH.
     Args:
         device_info: Dict chứa hostname, username, password. (Nếu None, sẽ dùng config mặc định)
     """
     
-    # Xử lý khi device_info là None
     if device_info is None:
         device_info = get_default_device_config()
     
-    # Đảm bảo các field là string
     hostname = str(device_info.get("hostname", ""))
     username = str(device_info.get("username", ""))
     password = str(device_info.get("password", ""))
@@ -45,7 +43,7 @@ def connect_to_device(device_info: Optional[Dict[str, Any]] = None) -> Dict[str,
     if not hostname or not username or not password:
         return {
             "success": False,
-            "error": f"Thiếu thông tin kết nối: hostname={hostname}, username={username}"
+            "error": f"Thiếu thông tin bắt buộc để kết nối: hostname={hostname}, username={username}"
         }
     
     ssh_params = get_ssh_params()
@@ -90,8 +88,7 @@ def connect_to_device(device_info: Optional[Dict[str, Any]] = None) -> Dict[str,
 @tool
 def execute_show_command(connection: Optional[Any] = None, command: str = "") -> Dict[str, Any]:
     """
-    Thực thi lệnh show trên thiết bị.
-    
+    THỰC THI LỆNH SHOW TRÊN THIẾT BỊ.
     Args:
         connection: Đối tượng kết nối Netmiko
         command: Lệnh show cần thực thi
@@ -122,16 +119,13 @@ def execute_show_command(connection: Optional[Any] = None, command: str = "") ->
             "error": str(e)
         }
 
-# Thêm các tool mới vào cuối file, trước hàm parse_vlan_output
 
 @tool
 def discover_neighbors(device_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Phát hiện các thiết bị lân cận sử dụng CDP/LLDP.
-    
+    PHÁT HIỆN CÁC THIẾT BỊ LÂN CẬN BẰNG CDP.
     Args:
         device_info: Thông tin thiết bị (nếu None, dùng config mặc định)
-        
     Returns:
         Dict chứa danh sách các thiết bị lân cận
     """
@@ -162,17 +156,9 @@ def discover_neighbors(device_info: Optional[Dict[str, Any]] = None) -> Dict[str
         if secret:
             connection.enable()
         
-        # Thử CDP trước
         try:
             cdp_output = connection.send_command("show cdp neighbors detail", read_timeout=30)
             neighbors.extend(parse_cdp_output(cdp_output))
-        except:
-            pass
-        
-        # Thử LLDP nếu CDP không có
-        try:
-            lldp_output = connection.send_command("show lldp neighbors detail", read_timeout=30)
-            neighbors.extend(parse_lldp_output(lldp_output))
         except:
             pass
         
@@ -196,8 +182,7 @@ def configure_static_route(device_info: Optional[Dict[str, Any]] = None,
                            destination_network: str = "", 
                            next_hop: str = "") -> Dict[str, Any]:
     """
-    Cấu hình static route trên router.
-    
+    CẤU HÌNH STATIC ROUTE TRÊN ROUTER.
     Args:
         device_info: Thông tin thiết bị
         destination_network: Mạng đích (ví dụ: 192.168.10.0 255.255.255.0)
@@ -262,8 +247,7 @@ def configure_ospf(device_info: Optional[Dict[str, Any]] = None,
                    wildcard_mask: str = "",
                    area: int = 0) -> Dict[str, Any]:
     """
-    Cấu hình OSPF trên router.
-    
+    CẤU HÌNH OSPF TRÊN ROUTER.
     Args:
         device_info: Thông tin thiết bị
         process_id: OSPF process ID (mặc định: 1)
@@ -330,8 +314,7 @@ def ping_test(device_info: Optional[Dict[str, Any]] = None,
               target_ip: str = "",
               count: int = 5) -> Dict[str, Any]:
     """
-    Kiểm tra kết nối ping đến địa chỉ IP.
-    
+    KIỂM TRA KẾT NỐI PING ĐẾN ĐỊA CHỈ IP.
     Args:
         device_info: Thông tin thiết bị
         target_ip: Địa chỉ IP cần ping
@@ -396,7 +379,7 @@ def ping_test(device_info: Optional[Dict[str, Any]] = None,
 @tool
 def get_routing_table(device_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Lấy bảng định tuyến của router.
+    LẤY BẢNG ĐỊNH TUYẾN CỦA ROUTER.
     
     Args:
         device_info: Thông tin thiết bị
@@ -443,8 +426,7 @@ def get_routing_table(device_info: Optional[Dict[str, Any]] = None) -> Dict[str,
 @tool
 def get_interface_ip(device_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """
-    Lấy địa chỉ IP trên tất cả các interface.
-    
+    LẤY ĐỊA CHỈ IP TRÊN TẤT CẢ CÁC INTERFACE.
     Args:
         device_info: Thông tin thiết bị
     """
@@ -500,7 +482,6 @@ def get_interface_ip(device_info: Optional[Dict[str, Any]] = None) -> Dict[str, 
             "error": str(e)
         }
 
-# Hàm parse CDP và LLDP
 def parse_cdp_output(output: str) -> list:
     """Parse output của lệnh show cdp neighbors detail"""
     neighbors = []
@@ -554,8 +535,7 @@ def parse_lldp_output(output: str) -> list:
 @tool
 def check_vlan_status(device_info: Optional[Dict[str, Any]] = None, vlan_id: int = 0) -> Dict[str, Any]:
     """
-    Kiểm tra trạng thái của một VLAN cụ thể.
-    
+    KIỂM TRA TRẠNG THÁI CỦA MỘT VLAN CỤ THỂ.
     Args:
         device_info: Thông tin thiết bị (nếu None, dùng config mặc định)
         vlan_id: ID của VLAN cần kiểm tra
@@ -629,8 +609,7 @@ def check_vlan_status(device_info: Optional[Dict[str, Any]] = None, vlan_id: int
 @tool
 def fix_vlan_issue(device_info: Optional[Dict[str, Any]] = None, vlan_id: int = 0, issue_type: str = "") -> Dict[str, Any]:
     """
-    Tự động sửa lỗi VLAN cơ bản.
-    
+    TỰ ĐỘNG SỬA LỖI VLAN CƠ BẢN.
     Args:
         device_info: Thông tin thiết bị (nếu None, dùng config mặc định)
         vlan_id: ID của VLAN

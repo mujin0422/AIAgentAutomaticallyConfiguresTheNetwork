@@ -34,10 +34,8 @@ def detect_config_issues(data: Dict[str, Any]) -> Dict[str, Any]:
 def parse_vlan_output(vlan_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Phân tích output VLAN để tìm vấn đề.
-    
     Args:
-        vlan_data: Dict chứa output của các lệnh show VLAN
-        
+        vlan_data: Dict chứa output của các lệnh show VLAN 
     Returns:
         Dict chứa phân tích chi tiết
     """
@@ -84,10 +82,8 @@ def parse_vlan_output(vlan_data: Dict[str, Any]) -> Dict[str, Any]:
 def analyze_interface_errors(interface_output: str) -> Dict[str, Any]:
     """
     Phân tích lỗi interface từ output show interfaces.
-    
     Args:
         interface_output: Output của lệnh show interfaces
-        
     Returns:
         Dict chứa phân tích lỗi
     """

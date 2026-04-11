@@ -3,10 +3,6 @@ from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import AIMessage
 
 def create_analyst():
-    """
-    Tạo Analyst Agent
-    """
-    
     system_prompt = """
     Bạn là Network Analyst, chuyên gia phân tích sự cố mạng.
     

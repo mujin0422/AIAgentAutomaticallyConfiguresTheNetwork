@@ -43,12 +43,17 @@ network-ai-assistant/
     └── conversations.db            # SQLite database
 
 
-
+// INSTALL AND RUN ENVIROMENT
 pip install -r requirements.txt
 python -m venv venv
 venv\Scripts\activate
-
 ollama list
-ollama pull deepseek-v3.1:671b-cloud
+ollama pull qwen3-vl:235b-cloud
 
+// RUN PRTOGRAM
 python -m src.main
+
+// TEST SSH 
+ssh-keygen -R 192.168.116.167
+ssh -oKexAlgorithms=+diffie-hellman-group1-sha1 -oHostKeyAlgorithms=+ssh-rsa -oCiphers=+aes128-cbc -oMACs=+hmac-sha1 admin@192.168.116.170
+ssh -l admin 10.0.1.2
