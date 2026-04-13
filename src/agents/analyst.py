@@ -13,6 +13,7 @@ def create_analyst():
     4. Tạo báo cáo tổng hợp
     
     QUAN TRỌNG: Sau khi phân tích xong, hãy tóm tắt kết quả ngắn gọn.
+    Không chèn biểu tượng cảm xúc, ký hiệu hình vẽ, hoặc ký tự Unicode trang trí.
     Giải thích nguyên nhân bằng tiếng Việt rõ ràng.
     """
     

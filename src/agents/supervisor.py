@@ -1,61 +1,36 @@
 from typing import Literal
-from langchain_ollama import ChatOllama
 from src.graph.state import NetworkState
+from langgraph.types import Command
+from langgraph.graph import END
 
 class SupervisorAgent:
-    def __init__(self, model: str = "qwen3-vl:235b-cloud"):
-        self.llm = ChatOllama(
-            model=model,
-            temperature=0.1,
-            base_url="http://localhost:11434",
-            num_predict=1024,
-        )
-        self.step_count = 0
-    
-    def should_continue(self, state: NetworkState) -> Literal["network_expert", "analyst", "__end__"]:
-        self.step_count += 1
-        
-        print(f"\n\n📌 STEP {self.step_count}:")
-        
-        # KIỂM TRA analysis_results
-        if state.get("analysis_results"):
-            print("   Đã có kết quả phân tích, kết thúc workflow")
-            return "__end__"
-        
-        # Kiểm tra current_phase
-        if state.get("current_phase") == "analyzed":
-            print("   Đã phân tích xong, kết thúc workflow")
-            return "__end__"
-        
-        # Bước 1: Gọi network_expert
-        if self.step_count == 1:
-            print("   Gọi network_expert để thu thập dữ liệu")
-            return "network_expert"
-        
-        # Bước 2: Gọi analyst
-        if self.step_count == 2:
-            print("   Gọi analyst để phân tích kết quả")
-            return "analyst"
-        
-        # Nếu đã chạy quá 3 bước, kết thúc
-        if self.step_count > 3:
-            print("   Quá số bước, kết thúc workflow")
-            return "__end__"
-        
-        return "__end__"
-    
     def route(self, state: NetworkState):
-        goto = self.should_continue(state)
+        messages = state.get("messages", [])
+        last_message = messages[-1] if messages else None
         
-        from langgraph.types import Command
+        # 1. KIỂM TRA ĐIỂM DỪNG: Nếu Analyst đã trả lời hoặc phase đã xong
+        if state.get("current_phase") == "analyzed":
+             # Nếu tin nhắn cuối là từ AI và không yêu cầu gọi tool nữa -> Xong
+            if last_message and last_message.type == "ai" and not getattr(last_message, 'tool_calls', None):
+                print("\033[95m[SUPERVISOR] Phân tích hoàn tất. Kết thúc workflow.\033[0m")
+                return Command(goto=END, update={"current_phase": "finished"})
+
+        # 2. KIỂM TRA DỮ LIỆU: Nếu chưa có bất kỳ tool message nào trong lịch sử HOẶC command_outputs trống
+        has_tool_output = any(msg.type == "tool" for msg in messages)
         
-        if goto == "__end__":
-            return Command(goto=goto, update={"current_phase": "finished"})
+        if not has_tool_output and not state.get("command_outputs"):
+            print("\033[95m[SUPERVISOR] Đang thu thập dữ liệu thiết bị từ ➤  NETWORK EXPERT ...\033[0m")
+            return Command(
+                goto="network_expert",
+                update={"current_phase": "collecting"}
+            )
         
-        return Command(
-            update={
-                "current_phase": "routing",
-                "next_agent": goto
-            },
-            goto=goto
-        )
+        # 3. CHUYỂN SANG PHÂN TÍCH: Nếu đã có dữ liệu nhưng chưa phân tích
+        if state.get("current_phase") != "analyzed":
+            print("\033[95m[SUPERVISOR] Đã có dữ liệu. Thực hiện phân tích với ➤  ANALYST ...\033[0m")
+            return Command(
+                goto="analyst",
+                update={"current_phase": "analyzing"}
+            )
+
+        return Command(goto=END)
