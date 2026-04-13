@@ -185,17 +185,17 @@ def process_query(query: str, device_name: str = None, thread_id: str = "default
 
 def interactive_mode():
     """Chạy interactive mode"""
-    print("||======================================================||")
-    print("|| NETWORK AI ASSISTANT - HỖ TRỢ XỬ LÝ SỰ CỐ MẠNG       ||")
-    print("||------------------------------------------------------||")
-    print("|| - Nhập câu hỏi của bạn                               ||")
-    print("||======================================================||")
+    print("\033[91m||======================================================||\033[0m")
+    print("\033[91m|| NETWORK AI ASSISTANT - HỖ TRỢ XỬ LÝ SỰ CỐ MẠNG       ||\033[0m")
+    print("\033[91m||------------------------------------------------------||\033[0m")
+    print("\033[91m|| - Nhập yêu cầu của bạn                               ||\033[0m")
+    print("\033[91m||======================================================||\033[0m")
     
     thread_id = f"session_{os.getpid()}"
     
     while True:
         try:
-            query = input("\n- Enter your question (Enter Q to quit): ").strip()
+            query = input("\033[92m- Enter your request (Enter Q to quit): \033[0m").strip()
             
             if query.lower() in ['q', 'Q']:
                 print("\n\nTạm biệt!")
