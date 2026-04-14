@@ -5,7 +5,7 @@ from src.agents.supervisor import SupervisorAgent
 from src.agents.network_expert import create_network_expert
 from src.agents.analyst import create_analyst
 
-def extract_network_data(state: NetworkState):
+def extractNetworkData(state: NetworkState):
     """
     Node trung gian: Trích xuất nội dung từ ToolMessages vào trường command_outputs
     giúp Supervisor nhận diện được dữ liệu đã được thu thập.
@@ -27,7 +27,7 @@ def extract_network_data(state: NetworkState):
         "current_phase": "collected" if new_outputs else "start"
     }
 
-def after_analyst(state: NetworkState):
+def afterAnalyst(state: NetworkState):
     """
     Node xử lý sau khi Analyst phản hồi: 
     Lưu nội dung phân tích vào final_report để main.py có thể hiển thị.
@@ -41,7 +41,7 @@ def after_analyst(state: NetworkState):
         "final_report": last_content # Chuyển câu trả lời của Agent thành báo cáo chính thức
     }
 
-def create_network_assistant_graph():
+def createNetworkAssistantGraph():
     # Khởi tạo các thành phần
     supervisor = SupervisorAgent()
     network_expert = create_network_expert()
@@ -53,9 +53,9 @@ def create_network_assistant_graph():
     # Định nghĩa các Node
     builder.add_node("supervisor", supervisor.route)
     builder.add_node("network_expert", network_expert)
-    builder.add_node("extract_data", extract_network_data)
+    builder.add_node("extract_data", extractNetworkData)
     builder.add_node("analyst", analyst)
-    builder.add_node("after_analyst", after_analyst)
+    builder.add_node("afterAnalyst", afterAnalyst)
 
     # Thiết lập luồng chạy (Edges)
     builder.add_edge(START, "supervisor")
@@ -65,60 +65,10 @@ def create_network_assistant_graph():
     builder.add_edge("extract_data", "supervisor")
 
     # Luồng Phân tích: Analyst -> After Analyst (lưu report) -> Quay lại Supervisor để END
-    builder.add_edge("analyst", "after_analyst")
-    builder.add_edge("after_analyst", "supervisor")
+    builder.add_edge("analyst", "afterAnalyst")
+    builder.add_edge("afterAnalyst", "supervisor")
 
     # Biên dịch đồ thị với bộ nhớ checkpoint
     graph = builder.compile(checkpointer=MemorySaver())
 
     return graph
-
-
-# 1. Phân tích nguyên nhân gốc rễ
-# Nguyên nhân 1: Agent không tự cập nhật Dictionary: Bạn đang dùng create_react_agent. Khi Agent này chạy các tool (như connect_to_device), kết quả trả về sẽ được LangGraph lưu vào danh sách messages dưới dạng các ToolMessage. Nó không tự động bóc tách kết quả đó để điền vào trường command_outputs hay interface_status trong NetworkState của bạn.
-# Nguyên nhân 2: Supervisor bị "mù" thông tin: Trong file supervisor.py (phiên bản mới), Supervisor kiểm tra if not state.get("command_outputs"). Vì trường này luôn trống (do lý do 1), Supervisor mặc định hiểu là "chưa có dữ liệu" và tiếp tục gửi yêu cầu sang network_expert.
-# Nguyên nhân 3: Vòng lặp: Supervisor -> network_expert (trả về tin nhắn) -> Supervisor (thấy dict vẫn trống) -> network_expert...
-# ==> Chúng ta sẽ tạo một node trung gian để "bóc" dữ liệu từ tin nhắn của Agent và đưa vào State, đồng thời cập nhật Supervisor để điều hướng dựa trên lịch sử tin nhắn.
-
-# from langgraph.graph import StateGraph, START, END
-# from langgraph.checkpoint.memory import MemorySaver
-# from src.graph.state import NetworkState
-# from src.agents.supervisor import SupervisorAgent
-# from src.agents.network_expert import create_network_expert
-# from src.agents.analyst import create_analyst
-
-# def create_network_assistant_graph():
-#     supervisor = SupervisorAgent()
-#     network_expert = create_network_expert()
-#     analyst = create_analyst()
-
-#     builder = StateGraph(NetworkState)
-
-#     # Thêm các node
-#     builder.add_node("supervisor", supervisor.route)
-#     builder.add_node("network_expert", network_expert)
-#     builder.add_node("analyst", analyst)
-
-#     # Định nghĩa luồng chạy
-#     builder.add_edge(START, "supervisor")
-
-#     # network_expert chạy xong luôn quay về supervisor để check state
-#     builder.add_edge("network_expert", "supervisor")
-
-#     # analyst chạy xong, ta cập nhật state đánh dấu đã phân tích rồi quay về supervisor
-#     def after_analyst_node(state: NetworkState):
-#         # Lấy nội dung tin nhắn cuối cùng để làm kết quả nếu cần
-#         return {
-#             "analysis_results": {"status": "completed"}, 
-#             "current_phase": "analyzed"
-#         }
-    
-#     builder.add_node("after_analyst", after_analyst_node)
-#     builder.add_edge("analyst", "after_analyst")
-#     builder.add_edge("after_analyst", "supervisor")
-
-#     # Lưu ý: Không cần builder.add_conditional_edges cho supervisor 
-#     # vì supervisor.route đã trả về Command(goto=...)
-
-#     graph = builder.compile(checkpointer=MemorySaver())
-#     return graph
