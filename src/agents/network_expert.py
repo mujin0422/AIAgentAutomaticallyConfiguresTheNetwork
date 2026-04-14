@@ -4,13 +4,12 @@ from src.tools.network_tools import (
     connect_to_device,
     execute_show_command,
     discover_neighbors,
-    configure_static_route,
-    configure_ospf,
     ping_test,
     get_routing_table,
     get_interface_ip,
-    check_vlan_status,
-    fix_vlan_issue
+    ssh_to_neighbor,
+    explore_network_hierarchy,
+    execute_on_multiple_devices
 )
 
 def create_network_expert():
@@ -18,13 +17,12 @@ def create_network_expert():
         connect_to_device,
         execute_show_command,
         discover_neighbors,
-        configure_static_route,
-        configure_ospf,
         ping_test,
         get_routing_table,
         get_interface_ip,
-        check_vlan_status,
-        fix_vlan_issue
+        ssh_to_neighbor,
+        explore_network_hierarchy,
+        execute_on_multiple_devices
     ]
     
     system_prompt = """
@@ -39,8 +37,6 @@ def create_network_expert():
     Quy trình xử lý:
     - Sử dụng connect_to_device để kết nối
     - Dùng execute_show_command để thu thập thông tin
-    - Với vấn đề VLAN, dùng check_vlan_status để kiểm tra chi tiết
-    - Chỉ sử dụng fix_vlan_issue khi đã xác định rõ nguyên nhân
     
     Luôn kiểm tra kết nối trước khi thực hiện lệnh.
     Ghi lại tất cả output để chuyển cho Analyst phân tích.
