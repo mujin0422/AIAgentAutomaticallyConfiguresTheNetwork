@@ -11,15 +11,15 @@ def extractNetworkData(state: NetworkState):
     giúp Supervisor nhận diện được dữ liệu đã được thu thập.
     """
     messages = state.get("messages", [])
-    new_outputs = state.get("command_outputs", {}).copy()
+    new_outputs = {} # Khởi tạo lại từ đầu để xóa dữ liệu cũ của phiên trước
     
-    # Duyệt ngược tin nhắn để lấy các output mới nhất từ các tool
     for msg in reversed(messages):
         if msg.type == "tool":
             tool_name = getattr(msg, 'name', 'unknown_tool')
-            new_outputs[tool_name] = msg.content
-        elif msg.type == "ai" and not getattr(msg, 'tool_calls', None):
-            # Nếu gặp tin nhắn AI bình thường thì dừng lại (đã hết lượt tool hiện tại)
+            # Chỉ lấy kết quả mới nhất nếu 1 tool được gọi nhiều lần
+            if tool_name not in new_outputs:
+                new_outputs[tool_name] = msg.content
+        elif msg.type == "human":
             break
             
     return {

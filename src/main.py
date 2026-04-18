@@ -1,19 +1,25 @@
 import os
 import yaml
+import requests
+import json
+import logging
+import time
+import textwrap
 from dotenv import load_dotenv
 from pathlib import Path
 from langchain_core.messages import HumanMessage
 from src.graph.workflow import createNetworkAssistantGraph
 from src.graph.state import NetworkState, DeviceConnection
-import logging
-import time
-import textwrap
 
-# Disable LangSmith & Load environment variables
+# --- CONFIGURATION ---
+GNS3_IP = "127.0.0.1"
+GNS3_PORT = "3080"
+BASE_URL = f"http://{GNS3_IP}:{GNS3_PORT}/v2"
+PROJECT_ID = "f900d9db-2b75-4a90-8d6e-59b49f92af35"
+
 os.environ["LANGCHAIN_TRACING"] = "false"
 load_dotenv()
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s | %(levelname)-8s | %(message)s',
@@ -21,30 +27,47 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Biến toàn cục để tái sử dụng
 graphInstance = None
 deviceObjectInstance = None
 
+# --- GNS3 HELPER FUNCTIONS ---
+
+def check_gns3_connectivity() -> bool:
+    """Kiểm tra kết nối tới GNS3 Server trước khi khởi động Agent"""
+    try:
+        response = requests.get(f"{BASE_URL}/version", timeout=5)
+        response.raise_for_status()
+        version = response.json().get("version")
+        logger.info(f"Kết nối GNS3 Server thành công (v{version})")
+        
+        proj_resp = requests.get(f"{BASE_URL}/projects/{PROJECT_ID}", timeout=5)
+        if proj_resp.status_code == 200:
+            logger.info(f"Project '{proj_resp.json().get('name')}' sẵn sàng.")
+            return True
+        else:
+            logger.error(f"Không tìm thấy Project ID: {PROJECT_ID}")
+            return False
+    except Exception as e:
+        logger.error(f"Lỗi kết nối GNS3: {e}")
+        return False
+
+# --- SYSTEM INITIALIZATION ---
+
 def initializeSystem() -> bool:
-    """Khởi tạo hệ thống 1 lần duy nhất khi start"""
     global graphInstance, deviceObjectInstance
     
     print("\n\033[92m[HỆ THỐNG] Bắt đầu khởi tạo ứng dụng...\033[0m")
-    startup_time = time.time()
     
-    # 1. Load config
+    if not check_gns3_connectivity():
+        return False
+    
     device_config = loadDeviceConfig()
     if not device_config:
-        logger.error("Không thể load config thiết bị")
+        logger.error("Không thể load config thiết bị từ devices.yaml")
         return False
     
-    # 2. Tạo DeviceConnection object
     deviceObjectInstance = createDeviceConnection(device_config)
-    if not deviceObjectInstance:
-        logger.error("Không thể tạo DeviceConnection object")
-        return False
     
-    # 3. Khởi tạo Graph
     try:
         graphInstance = createNetworkAssistantGraph()
         logger.info("Đã khởi tạo LangGraph workflow")
@@ -52,34 +75,28 @@ def initializeSystem() -> bool:
         logger.error(f"Lỗi khởi tạo graph: {e}")
         return False
     
-    startup_time = time.time() - startup_time
-    print(f"\033[92m[HỆ THỐNG] Khởi tạo hoàn tất trong {startup_time:.2f}s\033[0m\n")
+    print("\033[92m[HỆ THỐNG] Khởi tạo hoàn tất!\033[0m\n")
     return True
 
-def loadDeviceConfig(device_name: str = None):
-    """Load device configuration - LUÔN LẤY DEFAULT"""
+def loadDeviceConfig():
     try:
         config_path = Path("config/devices.yaml")
-        if not config_path.exists():
-            logger.warning("Không tìm thấy file config/devices.yaml")
-            return None
-            
+        if not config_path.exists(): return None
         with open(config_path, 'r', encoding='utf-8') as f:
             devices = yaml.safe_load(f)
-        
-        return devices.get("default")
             
+        if devices:
+            first_device_key = list(devices.keys())[0]
+            return devices.get(first_device_key)
+        return None
+        
     except Exception as e:
-        logger.error(f"Lỗi đọc file config: {e}")
+        logger.error(f"Lỗi config: {e}")
         return None
 
 def createDeviceConnection(device_config: dict):
-    """Tạo DeviceConnection object từ config dict"""
-    if not device_config:
-        return None
-        
     try:
-        device_obj = DeviceConnection(
+        return DeviceConnection(
             hostname=str(device_config.get("hostname", "")),
             device_type=str(device_config.get("device_type", "cisco_ios")),
             username=str(device_config.get("username", "")),
@@ -87,150 +104,132 @@ def createDeviceConnection(device_config: dict):
             secret=str(device_config.get("secret")),
             port=int(device_config.get("port", 22))
         )
-        logger.info(f"Đã tạo kết nối đến thiết bị: {device_obj.hostname}")
-        return device_obj
-        
     except Exception as e:
-        logger.error(f"Lỗi tạo DeviceConnection: {e}")
-        return None
+        logger.error(f"Lỗi tạo DeviceConnection: {e}"); return None
+
+# --- PROCESS & FORMATTING ---
 
 def processQuery(query: str, thread_id: str = "default"):
-    """Xử lý yêu cầu của người dùng - KHÔNG khởi tạo lại gì cả"""
     global graphInstance, deviceObjectInstance
+    if not graphInstance: return
     
-    # Kiểm tra hệ thống đã khởi tạo chưa
-    if not graphInstance or not deviceObjectInstance:
-        print("Hệ thống chưa được khởi tạo. Vui lòng khởi động lại.")
-        return None
+    initial_state = NetworkState(
+        messages=[HumanMessage(content=query)],
+        target_device=deviceObjectInstance,
+        devices=[deviceObjectInstance] if deviceObjectInstance else []
+    )
     
-    start_time = time.time()
-    logger.info(f"Xử lý query: {query[:100]}...")
+    config = {"configurable": {"thread_id": thread_id}}
     
-    try:
-        # Tạo state mới cho mỗi query
-        initial_state = NetworkState(
-            messages=[HumanMessage(content=query)],
-            target_device=deviceObjectInstance,
-            devices=[deviceObjectInstance] if deviceObjectInstance else []
-        )
-        
-        config = {
-            "configurable": {
-                "thread_id": thread_id
-            }
-        }
-        
-        # Chạy workflow (dùng graph đã khởi tạo sẵn)
-        print("\n\033[92m[HỆ THỐNG] Đang xử lý yêu cầu...\033[0m")
-        invoke_start = time.time()
-        
-        # Streaming output
-        for chunk in graphInstance.stream(initial_state, config):
-            if "analyst" in chunk:
-                messages = chunk["analyst"].get("messages", [])
-                for msg in messages:
-                    if hasattr(msg, 'content') and msg.content:
-                        # Format output
-                        lines = msg.content.split('\n')
-                        wrapped_lines = []
-                        content_width = 148
-                        for line in lines:
-                            if len(line) > content_width:
-                                wrapped_lines.extend(textwrap.wrap(line, width=content_width, replace_whitespace=False))
-                            else:
-                                wrapped_lines.append(line)
+    print("\n\033[92m[HỆ THỐNG] Đang xử lý yêu cầu...\033[0m")
+    
+    raw_outputs_to_print = {}
+
+    for chunk in graphInstance.stream(initial_state, config):
+        if "extract_data" in chunk:
+            raw_outputs_to_print = chunk["extract_data"].get("command_outputs", {})
+
+        if "analyst" in chunk:
+            # 2. IN KHUNG DỮ LIỆU RAW (NẾU CÓ)
+            if raw_outputs_to_print:
+                content_width = 120
+                frame_width = content_width + 4
+                
+                print("\n\t\033[96m" + "╔" + "═"*(frame_width-2) + "╗" + "\033[0m")
+                
+                title = "║ [RAW DATA] KẾT QUẢ THỰC THI TỪ THIẾT BỊ"
+                print("\t\033[96m" + title + " "*(frame_width - len(title) - 1) + "║\033[0m")
+                print("\t\033[96m" + "╠" + "═"*(frame_width-2) + "╣" + "\033[0m")
+                
+                tool_count = len(raw_outputs_to_print)
+                current_tool = 0
+                
+                for tool_name, result in raw_outputs_to_print.items():
+                    current_tool += 1
+                    display_text = str(result)
+                    try:
+                        parsed_data = json.loads(display_text)
                         
-                        frame_width = content_width + 4
-                        print("\033[93m\t" + "╔" + "═"*(frame_width-2) + "╗" + "\033[0m")
-                        title = "║ [ANALYST] phản hồi"
-                        print("\033[93m\t" + title + " "*(frame_width - len(title) - 1) + "║" + "\033[0m")
-                        for line in wrapped_lines:
-                            content_line = "║ " + line.ljust(content_width) + " ║"
-                            print("\t" + content_line)
-                        print("\033[93m\t" + "╚" + "═"*(frame_width-2) + "╝" + "\033[0m")
-        
-        invoke_time = time.time() - invoke_start
-        logger.info(f"Workflow hoàn thành trong {invoke_time:.2f}s")
-        
-        # Lấy kết quả cuối cùng
-        snapshot = graphInstance.get_state(config)
-        final_state_data = snapshot.values
-        
-        # In báo cáo tổng hợp
-        if final_state_data.get("final_report"):
-            report = final_state_data["final_report"]
-            lines = report.split("\n")
-            wrapped_lines = []
-            content_width = 148
-            for line in lines:
-                if len(line) > content_width:
-                    wrapped_lines.extend(textwrap.wrap(line, width=content_width, replace_whitespace=False))
-                else:
-                    wrapped_lines.append(line)
-            
-            frame_width = content_width + 4
-            print("\033[1m\033[93m\t" + "╔" + "═"*(frame_width-2) + "╗" + "\033[0m")
-            title = "║ TỔNG HỢP BÁO CÁO"
-            print("\033[1m\033[93m\t" + title + " "*(frame_width - len(title) - 1) + "║" + "\033[0m")
-            print("\033[1m\033[93m\t" + "╠" + "═"*(frame_width-2) + "╣" + "\033[0m")
-            for line in wrapped_lines:
-                content_line = "║ " + line.ljust(content_width) + " ║"
-                print("\t" + content_line)
-            print("\033[1m\033[93m\t" + "╚" + "═"*(frame_width-2) + "╝" + "\033[0m")
-        
-        print(f"\033[92m\n[HỆ THỐNG] Trạng thái: {final_state_data.get('current_phase', 'N/A')}\033[0m")
-        
-        total_time = time.time() - start_time
-        logger.info(f"Tổng thời gian xử lý: {total_time:.2f}s\n")
-        
-        return final_state_data
-        
-    except Exception as e:
-        logger.error(f"Lỗi xử lý: {e}", exc_info=True)
-        print(f"Đã xảy ra lỗi: {e}")
-        return None
+                        if isinstance(parsed_data, dict):
+                            # 1. Kiểm tra nếu tool báo lỗi
+                            if parsed_data.get("success") is False:
+                                display_text = f"LỖI: {parsed_data.get('error', 'Không rõ nguyên nhân')}"
+                            # 2. Lấy đích danh trường "output" mà bạn vừa đồng nhất
+                            elif "output" in parsed_data:
+                                display_text = str(parsed_data["output"])
+                    except Exception:
+                        pass 
+
+                    # In tên Tool
+                    tool_line = f"Tool đã dùng: {tool_name}"
+                    print("\t\033[96m║ \033[93m" + tool_line.ljust(content_width) + " \033[96m║\033[0m")
+                    print("\t\033[96m║ \033[90m" + "Output:".ljust(content_width) + " \033[96m║\033[0m")
+                    
+                    # In từng dòng kết quả (đã làm sạch)
+                    for line in display_text.split('\n'):
+                        # Cắt bỏ ký tự \r thừa và giới hạn độ dài dòng
+                        safe_line = line.replace('\r', '')[:content_width] 
+                        print("\t\033[96m║ \033[90m" + safe_line.ljust(content_width) + " \033[96m║\033[0m")
+                    
+                    if current_tool < tool_count:
+                        print("\t\033[96m" + "╠" + "═"*(frame_width-2) + "╣" + "\033[0m")
+
+                print("\t\033[96m" + "╚" + "═"*(frame_width-2) + "╝" + "\033[0m\n")
+
+            # 3. IN KHUNG PHÂN TÍCH CỦA ANALYST (Giữ nguyên cấu trúc cũ)
+            msg = chunk["analyst"].get("messages", [])[-1]
+            if hasattr(msg, 'content') and msg.content:
+                lines = msg.content.split('\n')
+                wrapped_lines = []
+                content_width = 120 
+                
+                for line in lines:
+                    if len(line) > content_width:
+                        wrapped_lines.extend(textwrap.wrap(line, width=content_width, replace_whitespace=False))
+                    else:
+                        wrapped_lines.append(line)
+                
+                frame_width = content_width + 4
+                print("\033[93m\t" + "╔" + "═"*(frame_width-2) + "╗" + "\033[0m")
+                title = "║ [ANALYST] PHẢN HỒI"
+                print("\033[93m\t" + title + " "*(frame_width - len(title) - 1) + "║" + "\033[0m")
+                
+                for line in wrapped_lines:
+                    content_line = "║ " + line.ljust(content_width) + " ║"
+                    print("\t" + content_line)
+                    
+                print("\033[93m\t" + "╚" + "═"*(frame_width-2) + "╝" + "\033[0m")
 
 def interactiveMode():
-    """Chạy interactive mode"""
-    # Khởi tạo hệ thống 1 lần duy nhất
     if not initializeSystem():
-        print("Không thể khởi tạo hệ thống. Vui lòng kiểm tra:")
-        print("1. File config/devices.yaml có tồn tại và đúng định dạng")
-        print("2. Thông tin SSH (hostname, username, password) chính xác")
-        print("3. Thiết bị có thể kết nối được qua mạng")
+        print("\033[91m[LỖI] Khởi tạo thất bại. Vui lòng kiểm tra GNS3 VM và Config.\033[0m")
         return
     
     print("\033[92m╔════════════════════════════════════════════════════════════════════════╗\033[0m")
-    print("\033[92m║ NETWORK AI ASSISTANT                                                   ║\033[0m")
+    print("\033[92m║                          NETWORK AI ASSISTANT                          ║\033[0m")
     print("\033[92m╠────────────────────────────────────────────────────────────────────────╣\033[0m")
+    print("\033[92m║ - GNS3 Server: Connected (192.168.10.128)                              ║\033[0m")
     print("\033[92m║ - Enter your request (Enter Q to quit)                                 ║\033[0m")
-    print("\033[92m║ - Graph và SSH connection đã được khởi tạo sẵn                         ║\033[0m")
     print("\033[92m╚════════════════════════════════════════════════════════════════════════╝\033[0m")
     
     query_count = 0
-    
     while True:
         try:
+            print(f"\n[Phiên làm việc #{query_count + 1}]")
             query = input("\t\033[93m ➤  Yêu cầu của bạn: \033[0m").strip()
-            if query.lower() in ['q', 'Q']:
-                print("\t\033[93m ➤  Tạm biệt!\033[0m")
-                break
             
-            if not query:
-                continue
+            if query.lower() in ['q', 'exit']: 
+                print("\033[92m[HỆ THỐNG] Đang thoát... Tạm biệt!\033[0m")
+                break
+            if not query: continue
             
             query_count += 1
-            # ✅ QUAN TRỌNG: Tạo thread_id MỚI cho mỗi query
-            thread_id = f"session_{query_count}_{int(time.time() * 1000)}"
-            logger.info(f"Query #{query_count} - Thread: {thread_id}")
+            thread_id = f"session_{query_count}_{int(time.time())}"
             processQuery(query, thread_id=thread_id)
             
-        except KeyboardInterrupt:
-            print("\t\033[93m ➤  Tạm biệt!\033[0m")
+        except KeyboardInterrupt: 
+            print("\n\033[91m[HỆ THỐNG] Đã ngắt bởi người dùng.\033[0m")
             break
-        except Exception as e:
-            logger.error(f"Lỗi: {str(e)}", exc_info=True)
-            print(f"Đã xảy ra lỗi: {str(e)}")
 
 if __name__ == "__main__":   
     interactiveMode()
