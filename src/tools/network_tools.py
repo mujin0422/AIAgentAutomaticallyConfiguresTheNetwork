@@ -1,3 +1,5 @@
+import cmd
+import ipaddress
 import os
 import re
 from typing import Dict, Any, Optional
@@ -656,3 +658,94 @@ def execute_on_multiple_devices(devices: list, command: str) -> Dict[str, Any]:
             "hops_completed": hop_results,
             "failed_at_hop": len(hop_results) + 1
         }
+    
+@tool
+def configure_static_route(
+    connection: Optional[Any] = None,
+    network: str = "",
+    mask: str = "255.255.255.0",
+    next_hop: str = ""
+) -> Dict[str, Any]:
+    """
+    CẤU HÌNH STATIC ROUTE.
+    VD: network='10.0.0.0', mask='255.255.255.0', next_hop='192.168.1.1'
+    """
+    if connection is None:
+        return {
+            "success": False,
+            "error": "Không có kết nối đến thiết bị"
+        }
+    
+    try:
+        # Validate IP addresses
+        ipaddress.IPv4Network(f"{network}/{mask}")
+        ipaddress.IPv4Address(next_hop)
+        
+        command = f"ip route {network} {mask} {next_hop}"
+        output = connection.send_config_set([command])
+        
+        return {
+            "success": True,
+            "output": output,
+            "message": f"Đã cấu hình static route: {command}"
+        }
+        
+    except ValueError as ve:
+        return {
+            "success": False,
+            "error": f"Địa chỉ IP không hợp lệ: {ve}"
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": f"Lỗi khi cấu hình static route: {e}"
+        }
+
+@tool
+def set_hostname(connection: Optional[Any] = None, new_hostname: str = "") -> Dict[str, Any]:
+    """
+    ĐẶT TÊN ROUTER (HOSTNAME).
+    """
+    if connection is None:
+        return {"success": False, "error": "Chưa connect"}
+    
+    if not new_hostname:
+        return {"success": False, "error": "Thiếu new_hostname"}
+    
+    cmds = ["configure terminal", f"hostname {new_hostname}", "end", "wr"]
+    try:
+        output = ""
+        for cmd in cmds:
+            output += connection.send_command(cmd)
+        return {
+            "success": True,
+            "new_hostname": new_hostname,
+            "output": output
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@tool
+def configure_ospf(
+    connection: Optional[Any] = None, 
+    process_id: int = 1, 
+    network: str = "", 
+    wildcard: str = "0.0.0.255", 
+    area: int = 0
+)-> Dict[str, Any]:
+    """ CẤU HÌNH OSPF. VD: process=1, network='192.168.1.0', wildcard='0.0.0.255', area=0 """
+    if connection is None:
+        return {"success": False, "error": "Chua connect"}
+    cmds = [ "router ospf {}".format(process_id), " network {} {} area {}".format(network, wildcard, area), "end" ]
+    try:
+        output = ""
+        for cmd in cmds:
+            output += connection.send_command(cmd)
+        return {
+            "success": True, 
+            "process_id": process_id, 
+            "commands": cmds, 
+            "output": output 
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}

@@ -1,4 +1,9 @@
 import os
+import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, project_root)
+
+from src.utils.langgraph_fix import *  # Fix LangGraph ImportError + Runtime.server_info
 import yaml
 from dotenv import load_dotenv
 from pathlib import Path
@@ -124,8 +129,9 @@ def processQuery(query: str, thread_id: str = "default"):
         print("\n\033[92m[HỆ THỐNG] Đang xử lý yêu cầu...\033[0m")
         invoke_start = time.time()
         
-        # Streaming output
-        for chunk in graphInstance.stream(initial_state, config):
+        # Streaming với recursion_limit đúng format
+        config_with_limit = {**config, "recursion_limit": 10}
+        for chunk in graphInstance.stream(initial_state, config_with_limit):
             if "analyst" in chunk:
                 messages = chunk["analyst"].get("messages", [])
                 for msg in messages:

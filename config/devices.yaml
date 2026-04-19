@@ -1,8 +1,8 @@
 # Cấu hình thiết bị mạng
 default:
-  hostname: "192.168.116.170"
+  hostname: "192.168.150.10"
   device_type: "cisco_ios"
   username: "admin"
-  password: "123456"
-  secret: "123456"
+  password: "cisco123"
+  secret: "cisco123"
   port: 22
