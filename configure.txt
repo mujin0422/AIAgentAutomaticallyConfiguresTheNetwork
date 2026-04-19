@@ -61,7 +61,7 @@ login local
 exit
 ip ssh version 2
 
-int f1/0
+int f0/0
 ip add 10.0.1.2 255.255.255.0
 no shut
 mpls ip
