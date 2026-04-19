@@ -3,34 +3,28 @@
 hostname P1
 ip domain-name aiagent.local
 crypto key generate rsa
-yes
 2048
 username admin privilege 15 password 123456
 line vty 0 4
 transport input ssh
-login local
+login local 
 exit
 ip ssh version 2
 
 int f0/0
-ip add dhcp
-no shut
-exit
-
-int f1/0
-ip add 10.0.1.1 255.255.255.0
-no shut
-mpls ip
-exit
-
-int f2/0
 ip add 10.0.10.1 255.255.255.0
 no shut
 mpls ip
 exit
 
-int f3/0
+int f1/0
 ip add 10.0.20.1 255.255.255.0
+no shut
+mpls ip
+exit
+
+int f2/0
+ip add 10.0.30.1 255.255.255.0
 no shut
 mpls ip
 exit
@@ -52,7 +46,6 @@ wr
 hostname P2
 ip domain-name aiagent.local
 crypto key generate rsa
-yes
 2048
 username admin privilege 15 password 123456
 line vty 0 4
@@ -62,19 +55,19 @@ exit
 ip ssh version 2
 
 int f0/0
-ip add 10.0.1.2 255.255.255.0
+ip add 10.0.10.2 255.255.255.0
+no shut
+mpls ip
+exit
+
+int f1/0
+ip add 10.0.50.1 255.255.255.0
 no shut
 mpls ip
 exit
 
 int f2/0
 ip add 10.0.40.1 255.255.255.0
-no shut
-mpls ip
-exit
-
-int f3/0
-ip add 10.0.30.1 255.255.255.0
 no shut
 mpls ip
 exit
@@ -95,49 +88,6 @@ wr
 hostname PE1
 ip domain-name aiagent.local
 crypto key generate rsa
-yes
-2048
-username admin privilege 15 password 123456
-line vty 0 4
-transport input ssh
-login local
-exit
-ip ssh version 2
-
-int f1/0
-ip add 10.0.30.2 255.255.255.0
-no shut
-mpls ip
-exit
-
-int f2/0
-ip add 10.0.10.2 255.255.255.0
-no shut
-mpls ip
-exit
-
-int f0/0
-ip add 192.168.1.1 255.255.255.0
-no shut
-exit
-
-int lo0
-ip add 10.1.1.1 255.255.255.255
-exit
-
-router ospf 1
-network 10.0.0.0 0.255.255.255 area 0
-exit
-
-end
-wr
-
-//========== PE2 ==========//
-
-hostname PE2
-ip domain-name aiagent.local
-crypto key generate rsa
-yes
 2048
 username admin privilege 15 password 123456
 line vty 0 4
@@ -158,9 +108,40 @@ no shut
 mpls ip
 exit
 
-int f0/0
-ip add 192.168.2.1 255.255.255.0
+int lo0
+ip add 10.1.1.1 255.255.255.255
+exit
+
+router ospf 1
+network 10.0.0.0 0.255.255.255 area 0
+exit
+
+end
+wr
+
+//========== PE2 ==========//
+
+hostname PE2
+ip domain-name aiagent.local
+crypto key generate rsa
+2048
+username admin privilege 15 password 123456
+line vty 0 4
+transport input ssh
+login local
+exit
+ip ssh version 2
+
+int f1/0
+ip add 10.0.50.2 255.255.255.0
 no shut
+mpls ip
+exit
+
+int f2/0
+ip add 10.0.30.2 255.255.255.0
+no shut
+mpls ip
 exit
 
 int lo0

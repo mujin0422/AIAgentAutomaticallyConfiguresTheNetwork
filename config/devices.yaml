@@ -6,3 +6,30 @@ default:
   password: "cisco123"
   secret: "cisco123"
   port: 22
+P1:
+  hostname: "127.0.0.1"      
+  port: 5000                 # Cập nhật số port thực tế của P1 trên GNS3
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+P2:
+  hostname: "127.0.0.1"
+  port: 5001                 # Cập nhật số port thực tế của P2
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+PE1:
+  hostname: "127.0.0.1"
+  port: 5002                 # Cập nhật số port thực tế của PE1
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+PE2:
+  hostname: "127.0.0.1"
+  port: 5003                 # Cập nhật số port thực tế của PE2
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"

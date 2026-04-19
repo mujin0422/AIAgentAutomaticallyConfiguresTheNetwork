@@ -1,11 +1,12 @@
 import cmd
 import ipaddress
+from multiprocessing.dummy import connection
+from multiprocessing import connection
 import os
 import re
 from typing import Dict, Any, Optional
 from langchain_core.tools import tool
 from netmiko import ConnectHandler
-from netmiko import NetmikoTimeoutException, NetmikoAuthenticationException
 import yaml
 from src.tools.parser_tools import *
 
@@ -17,322 +18,145 @@ def get_ssh_params():
         'global_delay_factor': float(os.getenv('SSH_DELAY_FACTOR', 2)),
     }
 
-def get_default_device_config():
-    """Đọc config thiết bị mặc định từ file"""
+def get_device_config(device_identifier: str):
+    """
+    Đọc config thiết bị từ file yaml dựa vào tên (VD: 'P1') hoặc IP (VD: '10.0.0.1').
+    """
     try:
         with open("config/devices.yaml", 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
-            return config.get("default", {})
+            
+            # Nếu truyền vào tên (P1, PE1...)
+            if device_identifier in config:
+                return config[device_identifier]
+                
+            # Nếu truyền vào địa chỉ IP
+            for key, val in config.items():
+                if val.get("hostname") == device_identifier:
+                    return val
+                    
+            return None # Không tìm thấy
     except Exception as e:
         print(f"Lỗi đọc config: {e}")
-        return {}
+        return None
 
-@tool
-def connect_to_device(device_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """
-    KẾT NỐI ĐẾN THIẾT BỊ MẠNG QUA SSH.
-    Args:
-        device_info: Dict chứa hostname, username, password. (Nếu None, sẽ dùng config mặc định)
-    """
+def connect_to_device(target: str) -> Dict[str, Any]:
+    device_cfg = get_device_config(target)
+    if not device_cfg:
+        return {"success": False, "error": f"Không tìm thấy cấu hình cho '{target}'"}
     
-    if device_info is None:
-        device_info = get_default_device_config()
+    # Đã sửa lỗi ghi đè biến ở đây
+    target_host = str(device_cfg.get("hostname", ""))
+    username = str(device_cfg.get("username", ""))
+    password = str(device_cfg.get("password", ""))
+    secret = str(device_cfg.get("secret", ""))
+    port = int(device_cfg.get("port", 22))
     
-    hostname = str(device_info.get("hostname", ""))
-    username = str(device_info.get("username", ""))
-    password = str(device_info.get("password", ""))
-    secret = str(device_info.get("secret")) if device_info.get("secret") else None
-    port = int(device_info.get("port", 22))
-    
-    if not hostname or not username or not password:
-        return {
-            "success": False,
-            "error": f"Thiếu thông tin bắt buộc để kết nối: hostname={hostname}, username={username}"
-        }
-    
-    ssh_params = get_ssh_params()
     connection_params = {
-        'device_type': 'cisco_ios',
-        'host': hostname,
+        'device_type': str(device_cfg.get("device_type", "cisco_ios")), 
+        'host': target_host,
         'username': username,
         'password': password,
         'secret': secret,
         'port': port,
-        **ssh_params
+        'session_timeout': 15,
+        'fast_cli': False,
+        **get_ssh_params()
     }
     
     try:
         connection = ConnectHandler(**connection_params)
-        
-        if secret:
+        if secret and not connection.check_enable_mode():
             connection.enable()
-        
-        return {
-            "success": True,
-            "connection": connection,
-            "message": f"Đã kết nối thành công đến {hostname}"
-        }
-        
-    except NetmikoTimeoutException:
-        return {
-            "success": False,
-            "error": f"Timeout khi kết nối đến {hostname}"
-        }
-    except NetmikoAuthenticationException:
-        return {
-            "success": False,
-            "error": "Sai username hoặc password"
-        }
+        return {"success": True, "connection": connection}
     except Exception as e:
-        return {
-            "success": False,
-            "error": f"Lỗi kết nối: {str(e)}"
-        }
+        return {"success": False, "error": str(e)}
 
 @tool
-def execute_show_command(connection: Optional[Any] = None, command: str = "") -> Dict[str, Any]:
+def get_interface_ip(hostname: str) -> Dict[str, Any]:
     """
-    THỰC THI LỆNH SHOW TRÊN THIẾT BỊ.
-    Args:
-        connection: Đối tượng kết nối Netmiko
-        command: Lệnh show cần thực thi
+    LẤY ĐỊA CHỈ IP TRÊN TẤT CẢ CÁC INTERFACE CỦA MỘT THIẾT BỊ CỤ THỂ.
+    Sử dụng lệnh 'show ip interface brief'. (VD: hostname="P1").
     """
-    if connection is None:
-        return {
-            "success": False,
-            "error": "Chưa có kết nối. Hãy gọi connect_to_device trước."
-        }
-    
-    if not command:
-        return {
-            "success": False,
-            "error": "Chưa nhập lệnh cần thực thi."
-        }
-    
     try:
-        output = connection.send_command(command, read_timeout=30)
-        return {
-            "success": True,
-            "command": command,
-            "output": output
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "command": command,
-            "error": str(e)
-        }
+        # Gọi thẳng hàm Python, KHÔNG dùng .invoke()
+        conn_res = connect_to_device(hostname)
+        if not conn_res["success"]: return conn_res
 
-
-@tool
-def discover_neighbors(device_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """
-    PHÁT HIỆN CÁC THIẾT BỊ LÂN CẬN BẰNG CDP.
-    Args:
-        device_info: Thông tin thiết bị (nếu None, dùng config mặc định)
-    Returns:
-        Dict chứa danh sách các thiết bị lân cận
-    """
-    if device_info is None:
-        device_info = get_default_device_config()
-    
-    hostname = str(device_info.get("hostname", ""))
-    username = str(device_info.get("username", ""))
-    password = str(device_info.get("password", ""))
-    secret = str(device_info.get("secret")) if device_info.get("secret") else None
-    port = int(device_info.get("port", 22))
-    
-    ssh_params = get_ssh_params()
-    connection_params = {
-        'device_type': 'cisco_ios',
-        'host': hostname,
-        'username': username,
-        'password': password,
-        'secret': secret,
-        'port': port,
-        **ssh_params
-    }
+        connection = conn_res["connection"]
+        output = connection.send_command("show ip interface brief")
+        connection.disconnect() # Ngắt kết nối ngay lập tức
         
-    try:
-        connection = ConnectHandler(**connection_params)
-        if secret:
-            connection.enable()
-
-        output = connection.send_command("show cdp neighbors detail", read_timeout=30)
-        neighbors = parse_cdp_output(output)
-        
-        connection.disconnect()
-        
-        return {
-            "success": True,
-            "device": hostname,
-            "neighbors": neighbors,
-            "raw_output": output,
-            "count": len(neighbors)
-        }
-        
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
-    
-@tool
-def get_interface_ip(device_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """
-    LẤY ĐỊA CHỈ IP TRÊN TẤT CẢ CÁC INTERFACE.
-    Args:
-        device_info: Thông tin thiết bị
-    """
-    if device_info is None:
-        device_info = get_default_device_config()
-    
-    hostname = str(device_info.get("hostname", ""))
-    username = str(device_info.get("username", ""))
-    password = str(device_info.get("password", ""))
-    secret = str(device_info.get("secret")) if device_info.get("secret") else None
-    port = int(device_info.get("port", 22))
-    
-    ssh_params = get_ssh_params()
-    connection_params = {
-        'device_type': 'cisco_ios',
-        'host': hostname,
-        'username': username,
-        'password': password,
-        'secret': secret,
-        'port': port,
-        **ssh_params
-    }
-    
-
-    try:
-        connection = ConnectHandler(**connection_params)
-        if secret:
-            connection.enable()
-
-        output = connection.send_command("show ip interface brief", read_timeout=30)
-        interfaces = parse_interface_ip(output)
-
-        connection.disconnect()
+        # Dùng hàm parse từ parser_tools của bạn (nếu có lỗi đoạn này thì cứ trả về output thô)
+        try:
+            interfaces = parse_interface_ip(output)
+        except Exception:
+            interfaces = {}
                
-        return {
-            "success": True,
-            "interfaces": interfaces,
-            "raw_output": output
-        }
-        
+        return {"success": True, "device": hostname, "interfaces": interfaces, "output": output}
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }    
-
-
+        return {"success": False, "error": str(e)}
 
 @tool
-def ping_test(device_info: Optional[Dict[str, Any]] = None, target_ip: str = "") -> Dict[str, Any]:
+def ping_test(target_ip: str, source_hostname: str) -> Dict[str, Any]:
     """
-    KIỂM TRA KẾT NỐI PING ĐẾN ĐỊA CHỈ IP.
+    THỰC HIỆN LỆNH PING TỪ MỘT THIẾT BỊ NGUỒN ĐẾN IP ĐÍCH.
     Args:
-        device_info: Thông tin thiết bị
-        target_ip: Địa chỉ IP cần ping
-        count: Số lần ping (mặc định: 5)
+        target_ip: IP cần ping đến (VD: "10.0.0.2").
+        source_hostname: Thiết bị thực hiện lệnh ping (VD: "P1").
     """
-    if not target_ip:
-        return {
-            "success": False,
-            "error": "Thiếu target_ip"
-        }
-    
-    if device_info is None:
-        device_info = get_default_device_config()
-    
-    hostname = str(device_info.get("hostname", ""))
-    username = str(device_info.get("username", ""))
-    password = str(device_info.get("password", ""))
-    secret = str(device_info.get("secret")) if device_info.get("secret") else None
-    port = int(device_info.get("port", 22))
-    
-    ssh_params = get_ssh_params()
-    connection_params = {
-        'device_type': 'cisco_ios',
-        'host': hostname,
-        'username': username,
-        'password': password,
-        'secret': secret,
-        'port': port,
-        **ssh_params
-    }
-    
     try:
-        connection = ConnectHandler(**connection_params)
-        if secret:
-            connection.enable()
+        # Gọi thẳng hàm Python, KHÔNG dùng .invoke()
+        conn_res = connect_to_device(source_hostname)
+        if not conn_res["success"]: return conn_res
+
+        connection = conn_res["connection"]
         
+        # Với lệnh ping, có thể tốn thời gian chờ gói tin phản hồi, 
+        # nên dùng send_command với read_timeout cao sẽ an toàn hơn.
         ping_output = connection.send_command(f"ping {target_ip}", read_timeout=60)
-        connection.disconnect()
+        connection.disconnect() # Ngắt kết nối
         
-        # Phân tích kết quả ping
         success_rate = 0
-        if "Success rate is" in ping_output:
-            match = re.search(r"Success rate is (\d+) percent", ping_output)
-            if match:
-                success_rate = int(match.group(1))
+        match = re.search(r"Success rate is (\d+)\s*percent", ping_output)
+        if match: 
+            success_rate = int(match.group(1))
         
         return {
-            "success": True,
-            "target": target_ip,
-            "success_rate": success_rate,
-            "output": ping_output,
+            "success": True, 
+            "source": source_hostname, 
+            "target": target_ip, 
+            "success_rate": success_rate, 
+            "output": ping_output
         }
-        
     except Exception as e:
-        return {
-            "success": False,
-            "error": str(e)
-        }
+        return {"success": False, "error": str(e)}
 
 @tool
-def get_routing_table(device_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """
-    LẤY BẢNG ĐỊNH TUYẾN CỦA ROUTER.
-    
-    Args:
-        device_info: Thông tin thiết bị
-    """
-    if device_info is None:
-        device_info = get_default_device_config()
-    
-    hostname = str(device_info.get("hostname", ""))
-    username = str(device_info.get("username", ""))
-    password = str(device_info.get("password", ""))
-    secret = str(device_info.get("secret")) if device_info.get("secret") else None
-    port = int(device_info.get("port", 22))
-    
-    ssh_params = get_ssh_params()
-    connection_params = {
-        'device_type': 'cisco_ios',
-        'host': hostname,
-        'username': username,
-        'password': password,
-        'secret': secret,
-        'port': port,
-        **ssh_params
-    }
-    
+def get_routing_table(hostname: str) -> Dict[str, Any]:
+    """LẤY BẢNG ĐỊNH TUYẾN CỦA ROUTER CỤ THỂ (VD: hostname="P1")."""
     try:
-        connection = ConnectHandler(**connection_params)
-        if secret:
-            connection.enable()
-        
-        routing_table = connection.send_command("show ip route", read_timeout=30)
+        conn_res = connect_to_device(hostname)
+        if not conn_res["success"]: return conn_res
+
+        connection = conn_res["connection"]
+        routing_table = connection.send_command_timing("show ip route")
+        connection.disconnect() # Lấy xong là phải ngắt kết nối ngay
+        return {"success": True, "device": hostname, "output": routing_table}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@tool
+def execute_show_command(command: str, hostname: str) -> Dict[str, Any]:
+    """THỰC THI LỆNH SHOW BẤT KỲ TRÊN THIẾT BỊ CHỈ ĐỊNH (VD: command="show ip ospf neighbor", hostname="P1")."""
+    try:
+        conn_res = connect_to_device(hostname)
+        if not conn_res["success"]: return conn_res
+
+        connection = conn_res["connection"]
+        output = connection.send_command_timing(command, strip_prompt=False, strip_command=False)
         connection.disconnect()
-        
-        return {
-            "success": True,
-            "routing_table": routing_table
-        }
-        
+        return {"success": True, "device": hostname, "command": command, "output": output}
     except Exception as e:
         return {
             "success": False,
@@ -396,7 +220,7 @@ def ssh_to_neighbor(device_info: Optional[Dict[str, Any]] = None,
         ssh_command = f"ssh -l {neighbor_username} {neighbor_ip}"
         ssh_output = source_connection.send_command(
             ssh_command, 
-            expect_string=r"password:",
+            expect_string=r"[Pp]assword:",
             read_timeout=30
         )
         
@@ -661,7 +485,7 @@ def execute_on_multiple_devices(devices: list, command: str) -> Dict[str, Any]:
     
 @tool
 def configure_static_route(
-    connection: Optional[Any] = None,
+    hostname: str,
     network: str = "",
     mask: str = "255.255.255.0",
     next_hop: str = ""
@@ -677,18 +501,19 @@ def configure_static_route(
         }
     
     try:
-        # Validate IP addresses
         ipaddress.IPv4Network(f"{network}/{mask}")
         ipaddress.IPv4Address(next_hop)
-        
+
         command = f"ip route {network} {mask} {next_hop}"
         output = connection.send_config_set([command])
-        
+
+        connection.disconnect()
+
         return {
             "success": True,
             "output": output,
             "message": f"Đã cấu hình static route: {command}"
-        }
+    }
         
     except ValueError as ve:
         return {
@@ -712,11 +537,12 @@ def set_hostname(connection: Optional[Any] = None, new_hostname: str = "") -> Di
     if not new_hostname:
         return {"success": False, "error": "Thiếu new_hostname"}
     
-    cmds = ["configure terminal", f"hostname {new_hostname}", "end", "wr"]
     try:
-        output = ""
-        for cmd in cmds:
-            output += connection.send_command(cmd)
+        output = connection.send_config_set([
+            f"hostname {new_hostname}"
+        ])
+        connection.save_config()
+        
         return {
             "success": True,
             "new_hostname": new_hostname,
@@ -736,11 +562,13 @@ def configure_ospf(
     """ CẤU HÌNH OSPF. VD: process=1, network='192.168.1.0', wildcard='0.0.0.255', area=0 """
     if connection is None:
         return {"success": False, "error": "Chua connect"}
-    cmds = [ "router ospf {}".format(process_id), " network {} {} area {}".format(network, wildcard, area), "end" ]
+    cmds = [
+        f"router ospf {process_id}",
+        f"network {network} {wildcard} area {area}"
+    ]
     try:
-        output = ""
-        for cmd in cmds:
-            output += connection.send_command(cmd)
+        output = connection.send_config_set(cmds)
+
         return {
             "success": True, 
             "process_id": process_id, 
@@ -749,3 +577,31 @@ def configure_ospf(
         }
     except Exception as e:
         return {"success": False, "error": str(e)}
+    
+def get_default_device_config():
+# 1. Ưu tiên ENV
+    if os.getenv("DEFAULT_HOST"):
+        return {
+            "hostname": os.getenv("DEFAULT_HOST"),
+            "username": os.getenv("DEFAULT_USER"),
+            "password": os.getenv("DEFAULT_PASS"),
+            "secret": os.getenv("DEFAULT_SECRET"),
+            "port": int(os.getenv("DEFAULT_PORT", 22)),
+            "device_type": os.getenv("DEVICE_TYPE", "cisco_ios")
+        }
+
+    # 2. Nếu không có → đọc YAML
+    try:
+        with open("config/devices.yaml", "r", encoding="utf-8") as f:
+            config = yaml.safe_load(f)
+
+        default_name = config.get("default_device")
+        device = config.get(default_name)
+
+        if not device:
+            raise ValueError("Không tìm thấy default_device trong YAML")
+
+        return device
+
+    except Exception:
+        return None
