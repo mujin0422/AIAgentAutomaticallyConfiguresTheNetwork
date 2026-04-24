@@ -1,8 +1,11 @@
-# Fix ModuleNotFoundError for config_backup_manager
+# Fix Plan: ModuleNotFoundError: No module named 'langgraph.runtime'
 
-- [x] Step 1: Create TODO.md with plan steps
-- [x] Step 2: Edit src/tools/config_backup_manager to rename class to ConfigBackupManager
-- [x] Step 3: Update TODO.md after edit
-- [ ] Step 4: Test python3 -m src.main
-- [ ] Step 5: Complete task
+## Steps
+- [x] 1. Gather information (search files, inspect langgraph package)
+- [x] 2. Read relevant source files
+- [x] 3. Formulate plan and get user approval
+- [x] 4. Remove obsolete `from src.utils.langgraph_fix import *` in `src/main.py`
+- [x] 5. Empty/delete `src/utils/langgraph_fix.py`
+- [x] 6. Delete temporary `search_langgraph.py`
+- [x] 7. Verify fix by running `python -u src/main.py`
 

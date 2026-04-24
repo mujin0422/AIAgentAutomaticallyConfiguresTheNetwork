@@ -250,7 +250,6 @@ import sys
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, project_root)
 
-from src.utils.langgraph_fix import *
 import yaml
 import requests
 import json
@@ -274,8 +273,8 @@ from rich.align import Align
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 # --- CẤU HÌNH ---
-GNS3_IP = "172.20.10.3"
-#GNS3_IP = "192.168.2.5"
+#GNS3_IP = "172.20.10.3"
+GNS3_IP = "192.168.2.5"
 GNS3_PORT = "3080"
 BASE_URL = f"http://{GNS3_IP}:{GNS3_PORT}/v2"
 PROJECT_ID = "cc92102e-89e3-4f2d-8e66-47268c496baa"
