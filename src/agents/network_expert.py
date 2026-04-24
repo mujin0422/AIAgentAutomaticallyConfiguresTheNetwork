@@ -6,10 +6,17 @@ from src.tools.gns3_tools import(
     start_node
 )
 from src.tools.network_tools import (
-    execute_show_command,
+    get_interface_ip,
     ping_test,
     get_routing_table,
-    get_interface_ip
+    execute_show_command,
+    configure_interface_ip,      
+    configure_ospf,              
+    configure_static_route,      
+    configure_vlan,
+    configure_hostname,              
+    smart_rollback,              
+    #list_backups                 
 )
 
 def create_network_expert():
@@ -20,7 +27,13 @@ def create_network_expert():
         execute_show_command,
         ping_test,
         get_routing_table,
-        get_interface_ip
+        get_interface_ip,
+        configure_interface_ip,      
+        configure_ospf,              
+        configure_static_route,      
+        configure_vlan,
+        configure_hostname,              
+        smart_rollback, 
     ]
     
     system_prompt = """

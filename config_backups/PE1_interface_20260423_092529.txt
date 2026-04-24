@@ -1,0 +1,9 @@
+Building configuration...
+
+Current configuration : 71 bytes
+!
+interface FastEthernet0/0
+ no ip address
+ shutdown
+ duplex half
+end

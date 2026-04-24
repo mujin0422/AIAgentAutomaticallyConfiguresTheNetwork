@@ -1,10 +1,11 @@
 import requests
 from langchain_core.tools import tool
 
-GNS3_IP = "127.0.0.1"
+GNS3_IP = "172.20.10.3"
+#GNS3_IP = "192.168.2.5"
 GNS3_PORT = "3080"
 BASE_URL = f"http://{GNS3_IP}:{GNS3_PORT}/v2"
-PROJECT_ID = "f900d9db-2b75-4a90-8d6e-59b49f92af35"
+PROJECT_ID = "cc92102e-89e3-4f2d-8e66-47268c496baa"
 
 @tool
 def get_topology_links() -> str:
@@ -14,7 +15,7 @@ def get_topology_links() -> str:
     """
     url = f"{BASE_URL}/projects/{PROJECT_ID}/links"
     try:
-        response = requests.get(url)
+        response = requests.get(url, timeout=5)
         response.raise_for_status()
         links = response.json()
         

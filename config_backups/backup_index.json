@@ -1,0 +1,60 @@
+{
+  "P1": [
+    {
+      "backup_id": "P1_interface_20260423_085144",
+      "hostname": "P1",
+      "config_type": "interface",
+      "timestamp": "2026-04-23T08:51:44.306819",
+      "description": "Config interface FastEthernet1/0 with 10.0.20.100/255.255.255.0",
+      "file": "config_backups/P1_interface_20260423_085144.txt",
+      "size": 150
+    },
+    {
+      "backup_id": "P1_hostname_20260423_090926",
+      "hostname": "P1",
+      "config_type": "hostname",
+      "timestamp": "2026-04-23T09:09:26.488873",
+      "description": "Thay đổi hostname từ P1 thành P1_CORE theo yêu cầu",
+      "file": "config_backups/P1_hostname_20260423_090926.txt",
+      "size": 11
+    },
+    {
+      "backup_id": "P1_static_route_20260423_093038",
+      "hostname": "P1",
+      "config_type": "static_route",
+      "timestamp": "2026-04-23T09:30:38.320468",
+      "description": "Static route to 172.16.0.0/255.255.0.0",
+      "file": "config_backups/P1_static_route_20260423_093038.txt",
+      "size": 0
+    },
+    {
+      "backup_id": "P1_static_route_20260423_103948",
+      "hostname": "P1",
+      "config_type": "static_route",
+      "timestamp": "2026-04-23T10:39:48.795698",
+      "description": "Static route to 172.16.0.0/255.255.0.0",
+      "file": "config_backups/P1_static_route_20260423_103948.txt",
+      "size": 0
+    }
+  ],
+  "PE1": [
+    {
+      "backup_id": "PE1_interface_20260423_092529",
+      "hostname": "PE1",
+      "config_type": "interface",
+      "timestamp": "2026-04-23T09:25:29.127430",
+      "description": "Cấu hình IP 172.16.0.2/16 cho interface F0/0 theo yêu cầu",
+      "file": "config_backups/PE1_interface_20260423_092529.txt",
+      "size": 130
+    },
+    {
+      "backup_id": "PE1_static_route_20260423_095616",
+      "hostname": "PE1",
+      "config_type": "static_route",
+      "timestamp": "2026-04-23T09:56:16.465268",
+      "description": "Static route to 172.16.0.0/255.255.0.0",
+      "file": "config_backups/PE1_static_route_20260423_095616.txt",
+      "size": 0
+    }
+  ]
+}
