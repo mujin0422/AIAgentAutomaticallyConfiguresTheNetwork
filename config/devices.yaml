@@ -53,3 +53,31 @@ PE2:
   device_type: "cisco_ios_telnet"
   username: "admin"
   password: "123456"
+
+  R1:
+  hostname: "172.20.10.3"      
+  port: 5008                 # Cập nhật số port thực tế của P1 trên GNS3
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+  R2:
+  hostname: "172.20.10.3"      
+  port: 5009                 # Cập nhật số port thực tế của P1 trên GNS3
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+  R3:
+  hostname: "172.20.10.3"      
+  port: 5010                 # Cập nhật số port thực tế của P1 trên GNS3
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+  R4:
+  hostname: "172.20.10.3"      
+  port: 5011                 # Cập nhật số port thực tế của P1 trên GNS3
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
