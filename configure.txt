@@ -83,6 +83,7 @@ exit
 end
 wr
 
+
 //========== PE1 ==========//
 
 hostname PE1
@@ -116,8 +117,47 @@ router ospf 1
 network 10.0.0.0 0.255.255.255 area 0
 exit
 
+ip vrf CUS_A
+rd 1:1
+route-target both 1:1
+exit
+
+ip vrf CUS_B
+rd 1:2
+route-target both 1:2
+exit
+
+int f3/0
+ip vrf forwarding CUS_A
+ip add 192.168.1.1 255.255.255.0
+no shut
+exit
+
+int f4/0
+ip vrf forwarding CUS_B
+ip add 192.168.2.1 255.255.255.0
+no shut
+exit
+
+router bgp 2204
+neighbor 10.2.2.2 remote-as 2204
+neighbor 10.2.2.2 update-source loopback0
+address-family vpnv4
+neighbor 10.2.2.2 activate
+neighbor 10.2.2.2 send-community extended
+exit
+address-family ipv4 vrf CUS_A
+neighbor 192.168.1.2 remote-as 22041
+neighbor 192.168.1.2 activate
+exit
+address-family ipv4 vrf CUS_B
+neighbor 192.168.2.2 remote-as 22042
+neighbor 192.168.2.2 activate
+exit
+
 end
 wr
+
 
 //========== PE2 ==========//
 
@@ -150,6 +190,172 @@ exit
 
 router ospf 1
 network 10.0.0.0 0.255.255.255 area 0
+exit
+
+ip vrf CUS_A
+rd 1:1
+route-target both 1:1
+exit
+
+ip vrf CUS_B
+rd 1:2
+route-target both 1:2
+exit
+
+int f3/0
+ip vrf forwarding CUS_A
+ip add 192.168.3.1 255.255.255.0
+no shut
+exit
+
+int f4/0
+ip vrf forwarding CUS_B
+ip add 192.168.4.1 255.255.255.0
+no shut
+exit
+
+router bgp 2204
+neighbor 10.1.1.1 remote-as 2204
+neighbor 10.1.1.1 update-source loopback0
+address-family vpnv4
+neighbor 10.1.1.1 activate
+neighbor 10.1.1.1 send-community extended
+exit
+address-family ipv4 vrf CUS_A
+neighbor 192.168.3.2 remote-as 22043
+neighbor 192.168.3.2 activate
+exit
+address-family ipv4 vrf CUS_B
+neighbor 192.168.4.2 remote-as 22044
+neighbor 192.168.4.2 activate
+exit
+
+end
+wr
+
+
+//========== CE-1A ==========//
+
+hostname  CE-1A
+ip domain-name aiagent.local
+crypto key generate rsa
+2048
+username admin privilege 15 password 123456
+line vty 0 4
+transport input ssh
+login local
+exit
+ip ssh version 2
+
+int f0/0
+ip add 192.168.1.2 255.255.255.0
+no shut
+exit
+
+int f1/0
+ip add 172.16.1.1 255.255.255.0
+no shut
+exit
+
+router bgp 22041
+neighbor 192.168.1.1 remote-as 2204
+network 172.16.1.0 mask 255.255.255.0
+exit
+
+end
+wr
+
+
+//========== CE-1B ==========//
+
+hostname  CE-1B
+ip domain-name aiagent.local
+crypto key generate rsa
+2048
+username admin privilege 15 password 123456
+line vty 0 4
+transport input ssh
+login local
+exit
+ip ssh version 2
+
+int f0/0
+ip add 192.168.2.2 255.255.255.0
+no shut
+exit
+
+int f1/0
+ip add 172.16.2.1 255.255.255.0
+no shut
+exit
+
+router bgp 22042
+neighbor 192.168.2.1 remote-as 2204
+network 172.16.2.0 mask 255.255.255.0
+exit
+
+end
+wr
+
+
+//========== CE-2A ==========//
+
+hostname  CE-2A
+ip domain-name aiagent.local
+crypto key generate rsa
+2048
+username admin privilege 15 password 123456
+line vty 0 4
+transport input ssh
+login local
+exit
+ip ssh version 2
+
+int f0/0
+ip add 192.168.3.2 255.255.255.0
+no shut
+exit
+
+int f1/0
+ip add 172.16.3.1 255.255.255.0
+no shut
+exit
+
+router bgp 22043
+neighbor 192.168.3.1 remote-as 2204
+network 172.16.3.0 mask 255.255.255.0
+exit
+
+end
+wr
+
+
+//========== CE-2B ==========//
+
+hostname  CE-2B
+ip domain-name aiagent.local
+crypto key generate rsa
+2048
+username admin privilege 15 password 123456
+line vty 0 4
+transport input ssh
+login local
+exit
+ip ssh version 2
+
+int f0/0
+ip add 192.168.4.2 255.255.255.0
+no shut
+exit
+
+int f1/0
+ip add 172.16.4.1 255.255.255.0
+no shut
+exit
+
+router bgp 22044
+neighbor 192.168.4.1 remote-as 2204
+network 172.16.4.0 mask 255.255.255.0
 exit
 
 end

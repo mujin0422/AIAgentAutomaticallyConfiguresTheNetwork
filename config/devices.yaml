@@ -1,6 +1,6 @@
 P1:
   hostname: "127.0.0.1"      
-  port: 5000                 # Cập nhật số port thực tế của P1 trên GNS3
+  port: 5000                 # Cập nhật số port thực tế của P1
   device_type: "cisco_ios_telnet"
   username: "admin"
   password: "123456"
@@ -25,3 +25,59 @@ PE2:
   device_type: "cisco_ios_telnet"
   username: "admin"
   password: "123456"
+
+CE-1A:
+  hostname: "127.0.0.1"
+  port: 5004                 # Cập nhật số port thực tế của CE-1A
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+CE-1B:
+  hostname: "127.0.0.1"
+  port: 5005                 # Cập nhật số port thực tế của CE-1B
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+CE-2A:
+  hostname: "127.0.0.1"
+  port: 5006                 # Cập nhật số port thực tế của CE-2A
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+CE-2B:
+  hostname: "127.0.0.1"
+  port: 5007                 # Cập nhật số port thực tế của CE-2B
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+Switch 1:
+  hostname: "127.0.0.1"
+  port: 5008                 # Cập nhật số port thực tế của Switch 1
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+Switch 2:
+  hostname: "127.0.0.1"
+  port: 5009                 # Cập nhật số port thực tế của Switch 2
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"
+
+Switch 3:
+  hostname: "127.0.0.1"
+  port: 5010                 # Cập nhật số port thực tế của Switch 3
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"  
+
+Switch 4:
+  hostname: "127.0.0.1"
+  port: 5011                 # Cập nhật số port thực tế của Switch 4
+  device_type: "cisco_ios_telnet"
+  username: "admin"
+  password: "123456"  

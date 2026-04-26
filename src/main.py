@@ -208,11 +208,13 @@ def interactiveMode():
     print("\033[92m╔════════════════════════════════════════════════════════════════════════╗\033[0m")
     print("\033[92m║                          NETWORK AI ASSISTANT                          ║\033[0m")
     print("\033[92m╠────────────────────────────────────────────────────────────────────────╣\033[0m")
-    print("\033[92m║ - GNS3 Server: Connected (192.168.10.128)                              ║\033[0m")
+    print("\033[92m║ - GNS3 Server: Connected (172.0.0.1)                                   ║\033[0m")
     print("\033[92m║ - Enter your request (Enter Q to quit)                                 ║\033[0m")
     print("\033[92m╚════════════════════════════════════════════════════════════════════════╝\033[0m")
     
+    session_thread_id = f"session_cli_{int(time.time())}"
     query_count = 0
+    
     while True:
         try:
             print(f"\n[Phiên làm việc #{query_count + 1}]")
@@ -224,8 +226,7 @@ def interactiveMode():
             if not query: continue
             
             query_count += 1
-            thread_id = f"session_{query_count}_{int(time.time())}"
-            processQuery(query, thread_id=thread_id)
+            processQuery(query, thread_id=session_thread_id)
             
         except KeyboardInterrupt: 
             print("\n\033[91m[HỆ THỐNG] Đã ngắt bởi người dùng.\033[0m")

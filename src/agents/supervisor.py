@@ -8,6 +8,17 @@ class SupervisorAgent:
         messages = state.get("messages", [])
         last_message = messages[-1] if messages else None
         
+        # 0. KIỂM TRA YÊU CẦU MỚI: Nếu tin nhắn cuối cùng là từ người dùng, bắt đầu thu thập dữ liệu mới
+        if last_message and last_message.type == "human":
+            print("\033[95m[SUPERVISOR] Nhận yêu cầu mới. Chuyển sang ➤ NETWORK EXPERT ...\033[0m")
+            return Command(
+                goto="network_expert",
+                update={
+                    "current_phase": "collecting",
+                    "command_outputs": {} 
+                }
+            )
+        
         # 1. KIỂM TRA ĐIỂM DỪNG: Nếu Analyst đã trả lời xong
         if state.get("current_phase") == "analyzed":
             if last_message and last_message.type == "ai" and not getattr(last_message, 'tool_calls', None):
