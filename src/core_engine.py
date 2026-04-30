@@ -24,7 +24,9 @@ from src.graph.workflow import createNetworkAssistantGraph
 from src.graph.state import NetworkState, DeviceConnection
 
 # --- CẤU HÌNH ---
-GNS3_IP = "172.20.10.3"
+#GNS3_IP = "172.20.10.3"
+#GNS3_IP = "192.168.2.5"
+GNS3_IP = "127.0.0.1"
 GNS3_PORT = "3080"
 BASE_URL = f"http://{GNS3_IP}:{GNS3_PORT}/v2"
 PROJECT_ID = "cc92102e-89e3-4f2d-8e66-47268c496baa"
@@ -64,19 +66,41 @@ def check_gns3_connectivity() -> bool:
         return False
 
 
-def load_device_config():
+import re
+
+def parse_device_from_query(query: str) -> str:
+    """
+    Parse tên thiết bị từ query tự nhiên bằng regex.
+    VD: "Kiểm tra ip P2" → "P2", "Bật PE1" → "PE1"
+    """
+    device_pattern = r'\b(P\d+|PE\d+|CE-[A-B]\w?)\b'
+    match = re.search(device_pattern, query, re.IGNORECASE)
+    if match:
+        return match.group(1).upper()
+    
+    common_devices = ['P1', 'P2', 'PE1', 'PE2']
+    for device in common_devices:
+        if device.lower() in query.lower():
+            return device
+    return 'P1'
+
+def load_device_config(query: str = None) -> Optional[dict]:
     try:
         config_path = Path("config/devices.yaml")
         if not config_path.exists():
             return None
         with open(config_path, 'r', encoding='utf-8') as f:
             devices = yaml.safe_load(f)
-
-        if devices:
-            first_device_key = list(devices.keys())[0]
-            return devices.get(first_device_key)
+        
+        device_name = parse_device_from_query(query) if query else 'P1'
+        logger.info(f"Selected device: {device_name} from query: {query or 'None'}")
+        
+        if device_name in devices:
+            return devices[device_name]
+        elif list(devices.keys()):
+            logger.warning(f"Device {device_name} not found, fallback to first device")
+            return devices[list(devices.keys())[0]]
         return None
-
     except Exception as e:
         logger.error(f"Lỗi config: {e}")
         return None

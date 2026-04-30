@@ -60,7 +60,8 @@ def connect_to_device(target: str) -> Dict[str, Any]:
         'password': password,
         'secret': secret,
         'port': port,
-        'session_timeout': 15,
+        'session_timeout': 30,
+        'read_timeout_override': 120,
         'fast_cli': False,
         **get_ssh_params()
     }
@@ -141,7 +142,7 @@ def get_routing_table(hostname: str) -> Dict[str, Any]:
         if not conn_res["success"]: return conn_res
 
         connection = conn_res["connection"]
-        routing_table = connection.send_command_timing("show ip route")
+        routing_table = connection.send_command_timing("show ip route", read_timeout=120)
         connection.disconnect() # Lấy xong là phải ngắt kết nối ngay
         return {"success": True, "device": hostname, "output": routing_table}
     except Exception as e:
@@ -155,7 +156,7 @@ def execute_show_command(command: str, hostname: str) -> Dict[str, Any]:
         if not conn_res["success"]: return conn_res
 
         connection = conn_res["connection"]
-        output = connection.send_command_timing(command, strip_prompt=False, strip_command=False)
+        output = connection.send_command_timing(command, strip_prompt=False, strip_command=False, read_timeout=120)
         connection.disconnect()
         return {"success": True, "device": hostname, "command": command, "output": output}
     except Exception as e:
@@ -179,7 +180,8 @@ def configure_interface_ip(hostname: str,
             f"interface {interface}",
             f"ip address {ip_address} {subnet_mask}",
             "no shutdown",
-            "exit"
+            "exit",
+            "write memory",
         ]
 
         # Lưu backup với nhiều phiên bản

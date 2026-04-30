@@ -1,9 +1,12 @@
-from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
+from langchain_ollama import ChatOllama
 from src.tools.gns3_tools import(
     get_topology_links,
     check_nodes_status,
-    start_node
+    start_node,
+    stop_node,
+    start_all_nodes,
+    stop_all_nodes
 )
 from src.tools.network_tools import (
     get_interface_ip,
@@ -16,7 +19,6 @@ from src.tools.network_tools import (
     configure_vlan,
     configure_hostname,              
     smart_rollback,              
-    #list_backups                 
 )
 
 def create_network_expert():
@@ -24,6 +26,9 @@ def create_network_expert():
         get_topology_links,
         check_nodes_status,
         start_node,
+        stop_node,
+        start_all_nodes,
+        stop_all_nodes,
         execute_show_command,
         ping_test,
         get_routing_table,
@@ -49,13 +54,21 @@ def create_network_expert():
     - Không tự ý giả định IP hoặc cổng nếu chưa quét topology.
     - Cung cấp toàn bộ output của lệnh cho Analyst. Không tự ý kết luận nguyên nhân gốc rễ, hãy để việc đó cho Analyst.
     - Trình bày thông tin thu thập được một cách sạch sẽ, phân tách rõ ràng theo từng thiết bị.
+   
+    QUAN TRỌNG VỀ TỐC ĐỘ:
+    - Chỉ gọi tối đa 2 tools cho mỗi yêu cầu.
+    - Không giải thích dài dòng. Chỉ trả về output lệnh thô, để Analyst phân tích.
+    - Không lặp lại tool đã gọi.
+
+    TUYỆT ĐỐI KHÔNG trả về code Java, C++, Python hay bất kỳ ngôn ngữ lập trình nào.
+    Chỉ trả về output lệnh mạng hoặc kết quả phân tích bằng tiếng Việt.
     """
     
     llm = ChatOllama(
         model="qwen3-vl:235b-cloud",
         temperature=0.1,
         base_url="http://localhost:11434",
-        num_predict=1024,
+        num_predict=256,
     )
     
     agent = create_react_agent(

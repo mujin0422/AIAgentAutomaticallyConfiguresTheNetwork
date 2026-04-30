@@ -274,7 +274,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 # --- CẤU HÌNH ---
 #GNS3_IP = "172.20.10.3"
-GNS3_IP = "192.168.2.5"
+#GNS3_IP = "192.168.2.5"
+GNS3_IP = "127.0.0.1"
 GNS3_PORT = "3080"
 BASE_URL = f"http://{GNS3_IP}:{GNS3_PORT}/v2"
 PROJECT_ID = "cc92102e-89e3-4f2d-8e66-47268c496baa"
@@ -296,51 +297,51 @@ deviceObjectInstance = None
 def print_logo():
     """Logo ASCII art phong cách OpenClaw"""
     logo = """
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║                                                               ║
-    ║     ███╗   ██╗███████╗████████╗██╗    ██╗ ██████╗ ██████╗     ║
-    ║     ████╗  ██║██╔════╝╚══██╔══╝██║    ██║██╔═══██╗██╔══██╗    ║
-    ║     ██╔██╗ ██║█████╗     ██║   ██║ █╗ ██║██║   ██║██████╔╝    ║
-    ║     ██║╚██╗██║██╔══╝     ██║   ██║███╗██║██║   ██║██╔══██╗    ║
-    ║     ██║ ╚████║███████╗   ██║   ╚███╔███╔╝╚██████╔╝██║  ██║    ║
-    ║     ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝    ║
-    ║                                                               ║
-    ║              TRỢ LÝ MẠNG AI - NETWORK ASSISTANT               ║
-    ║                Tích hợp GNS3 • AI Cục bộ                      ║
-    ╚═══════════════════════════════════════════════════════════════╝
+    ╔════════════════════════════════════════════════════════════════════════╗
+    ║                                                                        ║
+    ║     ███╗   ██╗███████╗████████╗██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗     ║  
+    ║     ████╗  ██║██╔════╝╚══██╔══╝██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝     ║  
+    ║     ██╔██╗ ██║█████╗     ██║   ██║ █╗ ██║██║   ██║██████╔╝█████╔╝      ║  
+    ║     ██║╚██╗██║██╔══╝     ██║   ██║███╗██║██║   ██║██╔══██╗██╔═██╗      ║  
+    ║     ██║ ╚████║███████╗   ██║   ╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗     ║ 
+    ║     ╚═╝  ╚═══╝╚══════╝   ╚═╝    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝     ║                                      
+    ║                                                                        ║
+    ║              TRỢ LÝ MẠNG AI - NETWORK ASSISTANT                        ║
+    ║                Tích hợp GNS3 • AI Cục bộ                               ║
+    ╚════════════════════════════════════════════════════════════════════════╝  
     """
     console.print(logo, style="cyan")
 
-def print_header():
-    """Header đơn giản với thông tin phiên bản"""
-    version_text = Text()
-    version_text.append("Trợ lý Mạng AI ", style="bold cyan")
-    version_text.append("v1.0", style="dim")
-    version_text.append(" - Tự động hóa mạng với AI cục bộ!", style="italic dim")
-    console.print(Align.center(version_text))
-    console.print()
+# def print_header():
+#     """Header đơn giản với thông tin phiên bản"""
+#     version_text = Text()
+#     version_text.append("Trợ lý Mạng AI ", style="bold cyan")
+#     version_text.append("v1.0", style="dim")
+#     version_text.append(" - Tự động hóa mạng với AI cục bộ!", style="italic dim")
+#     console.print(Align.center(version_text))
+#     console.print()
 
-def print_warning():
-    """Khung cảnh báo bảo mật (phong cách OpenClaw)"""
-    warning_text = (
-        "[bold yellow]⚠️ CẢNH BÁO BẢO MẬT - Vui lòng đọc kỹ[/bold yellow]\n\n"
-        "Trợ lý này có thể thực thi lệnh trên thiết bị mạng.\n"
-        "Một câu lệnh độc hại có thể kích hoạt các thao tác không an toàn.\n\n"
-        "[dim]Khuyến nghị cơ bản:[/dim]\n"
-        "• Luôn kiểm tra lệnh trước khi thực thi\n"
-        "• Sử dụng tài khoản chỉ đọc khi có thể\n"
-        "• Cách ly GNS3 khỏi mạng sản xuất\n"
-        "• Không expose công cụ này ra internet"
-    )
+# def print_warning():
+#     """Khung cảnh báo bảo mật (phong cách OpenClaw)"""
+#     warning_text = (
+#         "[bold yellow]⚠️ CẢNH BÁO BẢO MẬT - Vui lòng đọc kỹ[/bold yellow]\n\n"
+#         "Trợ lý này có thể thực thi lệnh trên thiết bị mạng.\n"
+#         "Một câu lệnh độc hại có thể kích hoạt các thao tác không an toàn.\n\n"
+#         "[dim]Khuyến nghị cơ bản:[/dim]\n"
+#         "• Luôn kiểm tra lệnh trước khi thực thi\n"
+#         "• Sử dụng tài khoản chỉ đọc khi có thể\n"
+#         "• Cách ly GNS3 khỏi mạng sản xuất\n"
+#         "• Không expose công cụ này ra internet"
+#     )
     
-    warning_box = Panel(
-        warning_text,
-        border_style="yellow",
-        box=box.HEAVY,
-        padding=(1, 2)
-    )
-    console.print(warning_box)
-    console.print()
+#     warning_box = Panel(
+#         warning_text,
+#         border_style="yellow",
+#         box=box.HEAVY,
+#         padding=(1, 2)
+    # )
+    # console.print(warning_box)
+    # console.print()
 
 def print_status():
     """Khung trạng thái hệ thống"""
@@ -545,7 +546,7 @@ def processQuery(query: str, thread_id: str = "default"):
                 if hasattr(msg, 'content') and msg.content:
                     if raw_outputs_to_print:
                         display_raw_data(raw_outputs_to_print)
-                    display_analysis(msg.content)
+                    display_analysis(msg.content.strip())
         
         progress.update(task, completed=True)
 
@@ -554,8 +555,8 @@ def processQuery(query: str, thread_id: str = "default"):
 def interactiveMode():
     console.clear()
     print_logo()
-    print_header()
-    print_warning()
+    # print_header()
+    # print_warning()
     
     if not initializeSystem():
         console.print("[red]Khởi tạo thất bại. Kiểm tra GNS3 và cấu hình.[/red]")
@@ -582,7 +583,7 @@ def interactiveMode():
             elif cmd == '/clear':
                 console.clear()
                 print_logo()
-                print_header()
+                #print_header()
                 print_status()
                 print_commands()
                 continue

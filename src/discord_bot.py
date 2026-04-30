@@ -113,7 +113,7 @@ async def handle_network_query(message: discord.Message, query: str):
         result = await asyncio.to_thread(run_agent_query, query, thread_id)
 
     if not result["success"]:
-        error_msg = f"❌ **Lỗi:** {result.get('error', 'Không rõ nguyên nhân')}"
+        error_msg = f"**Lỗi:** {result.get('error', 'Không rõ nguyên nhân')}"
         await message.reply(error_msg)
         return
 
@@ -152,7 +152,7 @@ async def handle_network_query(message: discord.Message, query: str):
     if len(full_response) > 1900:
         # Gửi phần phân tích trước
         if analysis:
-            await message.reply(f"## 📊 Phân tích\n{analysis[:1900]}")
+            await message.reply(f"##Phân tích\n{analysis[:1900]}")
 
         # Gửi raw output riêng, cắt từng phần
         for tool_name, output in raw_outputs.items():
@@ -185,7 +185,7 @@ async def status_command(ctx: commands.Context):
     from src.core_engine import get_device_info
     device = get_device_info()
     status_msg = (
-        "🟢 **Bot đang hoạt động**\n"
+        "**Bot đang hoạt động**\n"
         f"• Thiết bị: `{device.hostname if device else 'Chưa cấu hình'}`\n"
         f"• Loại: `{device.device_type if device else 'N/A'}`\n"
         f"• Prefix: `{DISCORD_PREFIX}`\n"
@@ -197,8 +197,8 @@ async def status_command(ctx: commands.Context):
 def main():
     if not DISCORD_TOKEN:
         logger.error("Thiếu DISCORD_BOT_TOKEN! Hãy tạo file .env và thêm token.")
-        print("\n❌ Lỗi: Không tìm thấy DISCORD_BOT_TOKEN trong .env")
-        print("👉 Hướng dẫn: xem docs/discord_setup.md để biết cách lấy token.")
+        print("\nLỗi: Không tìm thấy DISCORD_BOT_TOKEN trong .env")
+        print("Hướng dẫn: xem docs/discord_setup.md để biết cách lấy token.")
         sys.exit(1)
 
     logger.info("Khởi động Discord Bot...")

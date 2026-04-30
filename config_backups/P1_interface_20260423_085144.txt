@@ -1,9 +1,0 @@
-Building configuration...
-
-Current configuration : 91 bytes
-!
-interface FastEthernet1/0
- ip address 10.0.20.1 255.255.255.0
- duplex half
- mpls ip
-end

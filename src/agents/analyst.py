@@ -1,7 +1,7 @@
+from dotenv import load_dotenv
 from langchain_ollama import ChatOllama
 from langgraph.prebuilt import create_react_agent
 from langchain_core.messages import AIMessage
-
 def create_analyst():
     system_prompt = """
     Bạn là Network Analyst, chuyên gia phân tích sự cố mạng cấp cao.
@@ -22,13 +22,16 @@ def create_analyst():
     - Giải thích nguyên nhân và giải pháp bằng tiếng Việt chuyên ngành rõ ràng, súc tích.
     - Nếu dữ liệu thu thập được chưa đủ để kết luận, hãy nêu rõ bạn đang thiếu thông tin gì và yêu cầu Expert lấy thêm.
     - Tóm tắt kết quả cuối cùng theo cấu trúc: Hiện trạng -> Nguyên nhân -> Giải pháp đề xuất.
+    - Tuyệt đối KHÔNG viết dài dòng. Giới hạn phản hồi dưới 400 từ.
+
+    TUYỆT ĐỐI KHÔNG trả về code lập trình. Chỉ phân tích mạng bằng tiếng Việt.
     """
     
     llm = ChatOllama(
         model="qwen3-vl:235b-cloud",
         temperature=0.2,
         base_url="http://localhost:11434",
-        num_predict=1024,
+        num_predict=256,
     )
     
     agent = create_react_agent(

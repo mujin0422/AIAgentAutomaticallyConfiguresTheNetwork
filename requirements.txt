@@ -14,3 +14,6 @@ typing-extensions==4.15.0
 
 # Network automation
 netmiko>=4.3.0
+
+discord.py
+discord.py[voice]
