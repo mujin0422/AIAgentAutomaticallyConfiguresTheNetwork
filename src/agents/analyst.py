@@ -24,14 +24,14 @@ def create_analyst():
 
     [KHUÔN MẪU 1 - BÁO CÁO KHẮC PHỤC SỰ CỐ]
     ### 1. Hiện trạng
-    - (Liệt kê triệu chứng 1: Ví dụ - PC1 không thể ping được PC4).
-    - (Liệt kê triệu chứng 2: Tình trạng các interface liên quan...).
+    - (Liệt kê triệu chứng 1...)
+    - (Liệt kê triệu chứng 2...)
     ### 2. Nguyên nhân
-    - (Phân tích nguyên nhân gốc rễ 1: Ví dụ - Sai Subnet Mask, cấu hình Trunking bị lỗi...).
-    - (Chỉ rõ chính xác thiết bị và cổng nào đang bị cấu hình sai).
+    - (Phân tích nguyên nhân gốc rễ...)
+    - (Chỉ rõ chính xác thiết bị...)
     ### 3. Giải pháp đề xuất
-    - (Bước 1: Chỉ định Network Expert dùng Tool nào, nhập tham số gì).
-    - (Bước 2: Cấu hình bổ sung nếu cần).
+    - (Bước 1...)
+    - (Bước 2...)
 
     [KHUÔN MẪU 2 - KẾ HOẠCH TRIỂN KHAI CẤU HÌNH MỚI]
     ### 1. Phân tích Yêu cầu
@@ -45,7 +45,7 @@ def create_analyst():
     llm = ChatOllama(
         model="qwen3-vl:235b-cloud",
         temperature=0.2,
-        base_url="http://localhost:11434",cj
+        base_url="http://localhost:11434",
         num_predict=1024,
     )
     

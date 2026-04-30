@@ -2,6 +2,8 @@ import customtkinter as ctk
 import threading
 import time
 import warnings
+import markdown
+from tkhtmlview import HTMLLabel
 from PIL import Image
 from langchain_core.messages import HumanMessage
 from src.graph.state import NetworkState
@@ -100,24 +102,42 @@ class NetworkAssistantApp(ctk.CTk):
             bubble = ctk.CTkFrame(container, fg_color="#1E1E1E", corner_radius=20)
             bubble.pack(side="left", fill="both", expand=True, padx=(0, 50))
             
-            # Tính toán chiều cao chính xác và rộng rãi hơn
-            lines = text.split('\n')
-            total_lines = 0
-            for line in lines:
-                if line.strip() == "":
-                    total_lines += 1
-                else:
-                    total_lines += (len(line) // 55) + 1 
+           # 1. Chuyển đổi Markdown của AI sang HTML
+            html_content = markdown.markdown(text)
             
-            box_height = total_lines * 24 + 15 
+            # 2. XÓA BỎ MỌI DẤU XUỐNG DÒNG NGẦM (Lỗi lớn nhất khiến tkhtmlview sinh margin ảo)
+            html_content = html_content.replace('\n', '')
             
-            box = ctk.CTkTextbox(bubble, font=("Roboto", 15), fg_color="transparent", text_color="#FFFFFF", wrap="word", height=box_height)
+            # 3. PHÁ BỎ CÁC THẺ GÂY MARGIN, TỰ ĐIỀU KHIỂN XUỐNG DÒNG BẰNG <br>
+            html_content = html_content.replace('<h3>', '<b style="color: #FFFFFF; font-family: Roboto; font-size:12px;">')
+            html_content = html_content.replace('</h3>', '</b><br>')
+            
+            html_content = html_content.replace('<ul>', '')
+            html_content = html_content.replace('</ul>', '<br>')
+            
+            html_content = html_content.replace('<li>', '<span style="color: #FFFFFF; font-family: Roboto; font-size: 12px;"> - ')
+            html_content = html_content.replace('</li>', '</span><br>')
+            
+            html_content = html_content.replace('<p>', '<span style="color: #FFFFFF; font-family: Roboto; font-size: 12px;">')
+            html_content = html_content.replace('</p>', '</span><br>')
+            
+            if html_content.endswith('<br>'):
+                html_content = html_content[:-4]
+
+            # 4. Dùng HTMLLabel để hiển thị
+            box = HTMLLabel(
+                bubble, 
+                html=html_content, 
+                background="#1E1E1E", 
+                borderwidth=0, 
+                highlightthickness=0
+            )
             box.pack(fill="both", expand=True, padx=15, pady=10)
-            box.insert("1.0", text)
-            box.configure(state="disabled") # Khóa để không bị sửa chữ
+            
+            # 5. Tự động co giãn chiều cao
+            box.fit_height()
 
         elif sender == "system":
-            # Thông báo hệ thống: Căn giữa, chữ xám, nghiêng
             lbl = ctk.CTkLabel(container, text=text, font=("Roboto", 15, "italic"), text_color="#888888")
             lbl.pack(anchor="center")
 
@@ -267,21 +287,15 @@ class NetworkAssistantApp(ctk.CTk):
                 return 
 
             # 4. Nếu không bị đóng băng -> Hoàn tất báo cáo và in ra GUI
-            # Gộp log (khi gọi lệnh) lại thành 1 log duy nhất ở dòng thông báo cuối
-            if log_text:
-                combined_response = f"[Nhật ký xử lý]\n{log_text.strip()}\n\n---\n\n{final_response}"
-            else:
-                combined_response = final_response
-
-            self.after(0, self.updateAiRespone, combined_response)
+            self.after(0, self.updateAiRespone,final_response)
 
         except Exception as e:
             self.after(0, self.updateAiRespone, f"Lỗi hệ thống: {str(e)}")
 
     # Hàm cập nhật phản hồi của AI lên giao diện, ẩn trạng thái loading và kích hoạt lại nút gửi
-    def updateAiRespone(self, combined_response):
+    def updateAiRespone(self,final_response):
         self.hideLoading()
-        self.addMessage("ai", combined_response)
+        self.addMessage("ai",final_response)
         self.send_btn.configure(state="normal")
 
 if __name__ == "__main__":

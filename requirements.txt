@@ -20,3 +20,5 @@ netmiko>=4.3.0
 # GUI
 customtkinter==5.2.2
 Pillow==12.2.0
+markdown==3.10.2
+tkhtmlview==0.3.2
